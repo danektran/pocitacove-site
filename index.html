@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Počítačové sítě — Topologie</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a56db;--blue-dark:#1e40af;--blue-hover:#1d4ed8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-300:#93c5fd;
+  --bg:#f0f4ff;--white:#ffffff;
+  --text:#111827;--sec:#6b7280;--hint:#9ca3af;
+  --green-bg:#f0fdf4;--green-border:#bbf7d0;--green-text:#14532d;--green-mid:#16a34a;
+  --amber-bg:#fffbeb;--amber-border:#fde68a;--amber-text:#78350f;--amber-mid:#d97706;
+  --red-bg:#fef2f2;--red-border:#fecaca;--red-text:#991b1b;--red-mid:#dc2626;
+  --radius:8px;--radius-lg:12px;--radius-xl:14px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh;padding:1.5rem 1rem}
+.page{max-width:720px;margin:0 auto}
+
+/* HEADER */
+.site-header{background:var(--blue);border-radius:var(--radius-xl);padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:14px}
+.header-icon{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.header-icon svg{width:22px;height:22px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.header-text h1{font-size:16px;font-weight:600;color:white;margin-bottom:2px}
+.header-text p{font-size:12px;color:rgba(255,255,255,.7)}
+
+/* PROGRESS */
+.prog-card{background:var(--white);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1rem;border:1px solid var(--blue-100)}
+.prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.prog-label{font-size:11px;font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:.06em}
+.prog-pct{font-size:12px;font-weight:600;color:var(--blue)}
+.prog-track{height:6px;background:var(--blue-100);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),#3b82f6);border-radius:3px;transition:width .5s ease}
+.steps-nav{display:flex;gap:5px;flex-wrap:wrap}
+.snav-btn{padding:4px 10px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid var(--blue-100);background:var(--white);color:var(--sec);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.snav-btn:hover:not([disabled]){background:var(--blue-50);color:var(--blue-dark)}
+.snav-btn.done{background:var(--blue-50);color:var(--blue-dark);border-color:var(--blue-200)}
+.snav-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
+.snav-btn[disabled]{opacity:.35;cursor:default}
+
+/* LESSON CARD */
+.lesson-card{background:var(--white);border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--blue-100);margin-bottom:1rem;box-shadow:0 1px 3px rgba(26,86,219,.06)}
+.lesson-head{padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(--blue-50)}
+.lesson-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:.625rem}
+.badge-intro{background:var(--blue-50);color:var(--blue-dark)}
+.badge-sim{background:#f0fdf4;color:#166534}
+.badge-deep{background:#faf5ff;color:#5b21b6}
+.badge-bus{background:var(--amber-bg);color:#92400e}
+.badge-ring{background:var(--red-bg);color:#9f1239}
+.badge-cmp{background:var(--blue-50);color:var(--blue-dark)}
+.badge-quiz{background:#fdf4ff;color:#6b21a8}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.lesson-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3}
+.lesson-sub{font-size:13px;color:var(--sec)}
+.lesson-body{padding:1.25rem 1.5rem}
+
+/* TEXT */
+.text-block{font-size:14px;line-height:1.75;margin-bottom:1rem;color:var(--text)}
+.text-block p{margin-bottom:.75rem}.text-block p:last-child{margin:0}
+
+/* HIGHLIGHT BOXES */
+.hl{border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:13px;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.hl-icon{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.hl strong{font-weight:600}
+.hl-blue{background:var(--blue-50);color:var(--blue-dark);border:1px solid var(--blue-200)}
+.hl-green{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border)}
+.hl-amber{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-border)}
+.hl-red{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
+
+/* DEF GRID */
+.def-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px;margin-bottom:1rem}
+.def-card{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);padding:.75rem}
+.def-term{font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.def-val{font-size:13px;line-height:1.5;color:var(--text)}
+
+/* CANVAS */
+.cvs-wrap{border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--blue-100);background:var(--blue-50);margin-bottom:1rem}
+.cvs-wrap canvas{width:100%;display:block}
+.cvs-hint{font-size:11px;color:var(--hint);text-align:center;padding:5px 0 7px}
+
+/* CONTROLS */
+.status-bar{font-size:13px;color:var(--sec);padding:.5rem 1rem;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);margin-bottom:.75rem;min-height:38px;line-height:1.5}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem}
+.btn{padding:8px 16px;font-size:13px;font-weight:500;border-radius:var(--radius);cursor:pointer;transition:all .15s;font-family:inherit}
+.btn-primary{background:var(--blue);color:white;border:none}.btn-primary:hover{background:var(--blue-hover)}.btn-primary:disabled{opacity:.4;cursor:default}
+.btn-danger{background:white;color:var(--red-mid);border:1px solid var(--red-border)}.btn-danger:hover{background:var(--red-bg)}
+.btn-ok{background:white;color:var(--green-mid);border:1px solid var(--green-border)}.btn-ok:hover{background:var(--green-bg)}
+.btn-ghost{background:white;color:var(--text);border:1px solid var(--blue-100)}.btn-ghost:hover{background:var(--blue-50)}.btn-ghost:disabled{opacity:.35;cursor:default}
+
+/* LOG */
+.log-box{font-size:11px;font-family:monospace;max-height:88px;overflow-y:auto;padding:7px 12px;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius)}
+.lg{padding:1.5px 0;border-bottom:1px solid var(--blue-100)}.lg:last-child{border:none}
+.lg.ok{color:var(--green-mid)}.lg.err{color:var(--red-mid)}.lg.info{color:var(--blue)}.lg.warn{color:var(--amber-mid)}
+
+/* STEP PILLS */
+.step-pills{display:flex;gap:4px;margin-bottom:.875rem}
+.sp{width:28px;height:4px;border-radius:2px;background:var(--blue-100);transition:background .3s}
+.sp.done{background:var(--blue-200)}.sp.on{background:var(--blue)}
+.expl-card{border:1px solid var(--blue-100);border-radius:var(--radius-lg);padding:.875rem 1rem;margin-bottom:.875rem;background:var(--blue-50)}
+.expl-num{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.expl-title{font-size:14px;font-weight:600;margin-bottom:5px;color:var(--text)}
+.expl-desc{font-size:13px;line-height:1.6;color:var(--sec)}
+.expl-nav{display:flex;gap:8px;margin-bottom:1rem}
+
+/* TOPO PILLS */
+.topo-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.875rem}
+.topo-pill{padding:6px 16px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid var(--blue-200);background:white;cursor:pointer;font-family:inherit;color:var(--sec);transition:all .15s}
+.topo-pill.on{background:var(--blue);color:white;border-color:var(--blue)}
+.topo-pill:hover:not(.on){background:var(--blue-50);color:var(--blue-dark)}
+
+/* COMPARE */
+.cmp-split{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start}
+.cmp-cvs{flex:0 0 240px}
+.cmp-cvs canvas{width:100%;display:block;border-radius:var(--radius-lg);border:1px solid var(--blue-100);background:var(--blue-50)}
+.cmp-side{flex:1;min-width:180px}
+.bar-row{margin-bottom:9px}
+.bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--sec);margin-bottom:3px}
+.bar-lbl span:last-child{font-weight:600;color:var(--blue)}
+.bar-track{height:5px;background:var(--blue-100);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:.875rem 0}
+.pc-card{border-radius:var(--radius);padding:10px 12px;font-size:12px;line-height:1.7}
+.pc-card strong{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.6}
+.pc-pos{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border)}
+.pc-neg{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
+.cmp-meta{font-size:12px;color:var(--sec);line-height:1.7}
+.cmp-meta b{color:var(--text);font-weight:600}
+
+/* QUIZ */
+.q-prog-wrap{height:4px;background:var(--blue-100);border-radius:2px;margin-bottom:1.25rem;overflow:hidden}
+.q-prog{height:100%;background:var(--blue);border-radius:2px;transition:width .3s}
+.q-meta{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:1rem;color:var(--text)}
+.q-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:.875rem}
+.q-opt{padding:10px 14px;border:1px solid var(--blue-100);border-radius:var(--radius);cursor:pointer;font-size:13px;font-family:inherit;background:white;color:var(--text);text-align:left;transition:all .1s;line-height:1.4;font-weight:400}
+.q-opt:hover:not([disabled]){background:var(--blue-50);border-color:var(--blue-200)}
+.q-opt.correct{background:var(--green-bg);border-color:var(--green-mid);color:var(--green-text)}
+.q-opt.wrong{background:var(--red-bg);border-color:var(--red-mid);color:var(--red-text)}
+.q-exp{font-size:13px;color:var(--blue-dark);line-height:1.6;padding:10px 14px;background:var(--blue-50);border-radius:var(--radius);margin-bottom:.875rem;border-left:3px solid var(--blue)}
+.q-score-dots{display:flex;gap:4px;margin-bottom:1rem;flex-wrap:wrap;justify-content:center}
+.qdot{width:10px;height:10px;border-radius:50%;background:var(--blue-100);display:inline-block}
+.qdot.ok{background:var(--green-mid)}.qdot.bad{background:var(--red-mid)}
+
+/* LESSON NAV */
+.lesson-nav{display:flex;justify-content:space-between;align-items:center;padding:.875rem 1.5rem;border-top:1px solid var(--blue-50);background:var(--blue-50)}
+.lnav-pos{font-size:12px;color:var(--hint)}
+
+/* COMPLETE */
+.complete{text-align:center;padding:2.5rem 1rem}
+.complete-star{font-size:56px;margin-bottom:.75rem;line-height:1}
+.complete-title{font-size:22px;font-weight:700;margin-bottom:.5rem;color:var(--text)}
+.complete-score{font-size:42px;font-weight:700;color:var(--blue);margin-bottom:.5rem}
+.complete-sub{font-size:14px;color:var(--sec);max-width:380px;margin:0 auto 1.5rem;line-height:1.6}
+
+.slabel{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="site-header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><line x1="12" y1="9" x2="12" y2="3"/><line x1="15.18" y1="10.5" x2="20.66" y2="7.5"/><line x1="15.18" y1="13.5" x2="20.66" y2="16.5"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="8.82" y1="13.5" x2="3.34" y2="16.5"/><line x1="8.82" y1="10.5" x2="3.34" y2="7.5"/></svg>
+    </div>
+    <div class="header-text">
+      <h1>Počítačové sítě — topologie</h1>
+      <p>Interaktivní kurz pro samostudium &nbsp;·&nbsp; VŠ / IT kurzy</p>
+    </div>
+  </div>
+
+  <div class="prog-card">
+    <div class="prog-top"><span class="prog-label">Postup kurzem</span><span class="prog-pct" id="progPct">0 %</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="steps-nav" id="stepsNav"></div>
+  </div>
+
+  <div class="lesson-card" id="lessonCard"></div>
+
+</div>
+<script>
+const lerp=(a,b,t)=>a+(b-a)*t;
+const v=(x,y)=>({x,y});
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const SL=['A','B','C','D','E','F'];
+
+function getT(){
+  return{
+    bg:'#ffffff',bg2:'#eff6ff',
+    text:'#111827',sec:'#6b7280',hint:'#9ca3af',
+    border:'#dbeafe',border2:'#bfdbfe',
+    blue:'#1a56db',blueDark:'#1e40af',
+  }
+}
+
+const LESSONS=[
+  {id:'intro',  badge:'badge-intro',bTxt:'Úvod',         title:'Co jsou počítačové sítě?',    sub:'Základní pojmy a motivace'},
+  {id:'star',   badge:'badge-sim',  bTxt:'Interaktivní', title:'Topologie STAR — hvězda',     sub:'Nejrozšířenější síťová topologie'},
+  {id:'stardeep',badge:'badge-deep',bTxt:'Do hloubky',   title:'Hub vs. switch a přenos dat', sub:'Jak switch rozhoduje pomocí CAM tabulky'},
+  {id:'bus',    badge:'badge-bus',  bTxt:'Interaktivní', title:'Topologie BUS — sběrnice',    sub:'Sdílené médium a CSMA/CD'},
+  {id:'ring',   badge:'badge-ring', bTxt:'Interaktivní', title:'Topologie RING — kruh',       sub:'Token passing a deterministická síť'},
+  {id:'compare',badge:'badge-cmp',  bTxt:'Srovnání',     title:'STAR vs. BUS vs. RING',       sub:'Kdy použít kterou topologii'},
+  {id:'quiz',   badge:'badge-quiz', bTxt:'Kvíz',         title:'Ověř si znalosti',            sub:'8 otázek na úrovni VŠ / IT kurzy'},
+];
+
+let curL=0;const done=new Set();let qResults=[];
+
+function updateProg(){
+  const pct=Math.round(done.size/LESSONS.length*100);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+' %';
+  document.getElementById('stepsNav').innerHTML=LESSONS.map((l,i)=>{
+    const isDone=done.has(i),isActive=i===curL,isLocked=i>0&&!done.has(i-1)&&!isActive;
+    return`<button class="snav-btn${isDone?' done':''}${isActive?' active':''}" ${isLocked?'disabled':''} onclick="goL(${i})">${isDone?'✓ ':''+(i+1)+'. '}${l.title.split('—')[0].trim()}</button>`;
+  }).join('');
+}
+
+function goL(i){if(i>0&&!done.has(i-1)&&i!==curL)return;curL=i;render();updateProg();window.scrollTo({top:0,behavior:'smooth'});}
+function completeNext(){done.add(curL);if(curL<LESSONS.length-1){curL++;render();}else{renderComplete();}updateProg();window.scrollTo({top:0,behavior:'smooth'});}
+
+function hlIcon(type){
+  if(type==='info') return`<svg class="hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+  if(type==='check') return`<svg class="hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+  if(type==='warn') return`<svg class="hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+  return`<svg class="hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+}
+
+function render(){
+  const l=LESSONS[curL];const isLast=curL===LESSONS.length-1;
+  let body='';
+  if(l.id==='intro')     body=bIntro();
+  else if(l.id==='star')      body=bStar();
+  else if(l.id==='stardeep')  body=bDeep();
+  else if(l.id==='bus')       body=bBus();
+  else if(l.id==='ring')      body=bRing();
+  else if(l.id==='compare')   body=bCmp();
+  else if(l.id==='quiz')      body=bQuiz();
+  document.getElementById('lessonCard').innerHTML=
+    `<div class="lesson-head">
+      <div class="lesson-badge ${l.badge}"><div class="badge-dot"></div>${l.bTxt}</div>
+      <div class="lesson-title">${l.title}</div>
+      <div class="lesson-sub">${l.sub}</div>
+    </div>
+    <div class="lesson-body">${body}</div>
+    <div class="lesson-nav">
+      <button class="btn btn-ghost" ${curL===0?'disabled':''} onclick="goL(${curL-1})">← Zpět</button>
+      <span class="lnav-pos">${curL+1} / ${LESSONS.length}</span>
+      <button class="btn btn-primary" id="nextLBtn" onclick="completeNext()">${isLast?'Dokončit kurz ✓':'Další lekce →'}</button>
+    </div>`;
+  setTimeout(()=>postRender(l.id),40);
+}
+
+/* ── LEKCE 1: ÚVOD ── */
+function bIntro(){return`
+<div class="text-block"><p>Počítačová síť je skupina zařízení propojených tak, aby mohla sdílet data a prostředky. Než se zaměříme na konkrétní topologie, je důležité znát základní pojmy.</p></div>
+<div class="def-grid">
+  <div class="def-card"><div class="def-term">Uzel (node)</div><div class="def-val">Jakékoli zařízení v síti — PC, server, tiskárna, telefon.</div></div>
+  <div class="def-card"><div class="def-term">Topologie</div><div class="def-val">Způsob fyzického nebo logického propojení uzlů v síti.</div></div>
+  <div class="def-card"><div class="def-term">Rámec (frame)</div><div class="def-val">Jednotka dat na vrstvě 2 OSI. Obsahuje MAC adresy odesílatele a příjemce.</div></div>
+  <div class="def-card"><div class="def-term">MAC adresa</div><div class="def-val">Fyzická adresa síťové karty — 48 bitů, přidělena výrobcem. Jedinečná pro každé zařízení.</div></div>
+  <div class="def-card"><div class="def-term">Paket (packet)</div><div class="def-val">Jednotka dat na vrstvě 3. Obsahuje IP adresy — je směrován mezi sítěmi.</div></div>
+  <div class="def-card"><div class="def-term">SPOF</div><div class="def-val">Single Point of Failure — jediný bod, jehož výpadek způsobí výpadek celé sítě.</div></div>
+</div>
+<div class="hl hl-blue">${hlIcon('info')}<div><strong>OSI model:</strong> Vrstva 1 = fyzická (kabely, signál) &nbsp;·&nbsp; Vrstva 2 = linková (MAC, rámce, switch) &nbsp;·&nbsp; Vrstva 3 = síťová (IP, pakety, router)</div></div>
+<div class="text-block"><p>V tomto kurzu se zaměříme na tři základní topologie: <strong>STAR</strong> (hvězda), <strong>BUS</strong> (sběrnice) a <strong>RING</strong> (kruh). Každá má svou simulaci, animované kroky a srovnání.</p></div>
+<div class="hl hl-green">${hlIcon('check')}<div><strong>Jak pracovat s kurzem:</strong> Postupuj lekci po lekci — každá se odemkne po dokončení předchozí. Každá lekce obsahuje teorii a interaktivní simulaci. Na konci tě čeká kvíz.</div></div>`;}
+
+/* ── LEKCE 2: STAR ── */
+let starN=[],starSel=[],starPkt=null,starFailed=false,starAnimId=null;
+function bStar(){return`
+<div class="text-block"><p>STAR (hvězdicová) topologie je dnes nejpoužívanější v lokálních sítích. Každé zařízení je propojeno <strong>samostatným kabelem</strong> přímo s centrálním přepínačem (switchem).</p></div>
+<div class="hl hl-blue">${hlIcon('info')}<div><strong>Klíčový princip:</strong> Žádná dvě PC nekomunikují přímo — vše prochází switchem. Switch na základě MAC tabulky (CAM) přepošle rámec jen správnému příjemci.</div></div>
+<div class="slabel">Simulace</div>
+<div class="status-bar" id="sStat">Klikni na libovolné PC — vyber odesílatele, pak příjemce.</div>
+<div class="btn-row">
+  <button class="btn btn-primary" id="sSendBtn" disabled onclick="starSend()">Odeslat paket ▶</button>
+  <button class="btn btn-danger" id="sFailBtn" onclick="starFail()">Simulovat výpadek switche</button>
+</div>
+<div class="log-box" id="sLog"></div>
+<div class="cvs-wrap" style="margin-top:.75rem"><canvas id="starC" width="560" height="300"></canvas><div class="cvs-hint">Klikni na PC pro výběr · modrá tečka = paket v pohybu</div></div>
+<div class="hl hl-amber">${hlIcon('warn')}<div><strong>Vyzkoušej si:</strong> 1) Odešli paket mezi dvěma PC &nbsp;·&nbsp; 2) Simuluj výpadek switche a zkus odeslat znovu &nbsp;·&nbsp; 3) Výpadek switche = celá síť offline (SPOF)</div></div>`;}
+
+function postRenderStar(){
+  const c=document.getElementById('starC');if(!c)return;
+  const W=c.width,H=c.height;const ctx=c.getContext('2d');
+  starN=[v(W/2,H/2-8)];for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;starN.push(v(W/2+115*Math.cos(a),H/2-8+100*Math.sin(a)));}
+  starSel=[];starPkt=null;starFailed=false;
+  c.onclick=e=>{if(starPkt)return;const r=c.getBoundingClientRect();const mx=(e.clientX-r.left)*(W/r.width),my=(e.clientY-r.top)*(H/r.height);let hi=-1;for(let i=1;i<starN.length;i++)if(dist(starN[i],{x:mx,y:my})<20)hi=i;if(hi<0)return;const lbl=SL[hi-1];if(starSel.length===0){starSel=[hi];sStat('Odesílatel: PC-'+lbl+'. Klikni na příjemce.');}else if(starSel.length===1){if(starSel[0]===hi){starSel=[];sStat('Klikni na odesílatele.');}else{starSel=[starSel[0],hi];sStat('PC-'+SL[starSel[0]-1]+' → PC-'+lbl+'. Stiskni Odeslat ▶');document.getElementById('sSendBtn').disabled=false;}}else{starSel=[hi];document.getElementById('sSendBtn').disabled=true;sStat('Odesílatel: PC-'+lbl+'. Klikni na příjemce.');}drawStar(ctx,W,H,null);};
+  drawStar(ctx,W,H,null);
+}
+function sStat(t){const el=document.getElementById('sStat');if(el)el.textContent=t;}
+function sLog(m,t='info'){const b=document.getElementById('sLog');if(!b)return;const e=document.createElement('div');e.className='lg '+t;e.textContent='› '+m;b.prepend(e);while(b.children.length>20)b.lastChild.remove();}
+
+function drawPC(ctx,n,lbl,st){
+  const fill=st==='src'?'#dcfce7':st==='dst'?'#dbeafe':'#ffffff';
+  const stroke=st==='src'?'#16a34a':st==='dst'?'#1a56db':'#bfdbfe';
+  const lw=st==='normal'?1:2;
+  ctx.beginPath();ctx.arc(n.x,n.y,17,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();
+  ctx.strokeStyle=stroke;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(n.x-7,n.y-6,14,9,2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(n.x-4,n.y+3);ctx.lineTo(n.x+4,n.y+3);ctx.moveTo(n.x,n.y+3);ctx.lineTo(n.x,n.y+6);ctx.moveTo(n.x-4,n.y+6);ctx.lineTo(n.x+4,n.y+6);ctx.stroke();
+  ctx.fillStyle=st==='normal'?'#9ca3af':stroke;ctx.font='500 10px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('PC-'+lbl,n.x,n.y+21);
+}
+
+function drawHub(ctx,n,failed){
+  ctx.beginPath();ctx.arc(n.x,n.y,24,0,Math.PI*2);ctx.fillStyle=failed?'#fef2f2':'#eff6ff';ctx.fill();ctx.strokeStyle=failed?'#dc2626':'#1a56db';ctx.lineWidth=failed?2:2;ctx.stroke();
+  ctx.fillStyle=failed?'#dc2626':'#1e40af';ctx.font='600 9px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(failed?'OFFLINE':'Switch',n.x,n.y-1);
+  if(!failed){ctx.fillStyle='#3b82f6';ctx.font='500 8px Inter,system-ui';ctx.fillText('CAM',n.x,n.y+10);}
+}
+
+function drawStar(ctx,W,H,pkt){
+  ctx.clearRect(0,0,W,H);ctx.setLineDash([]);
+  for(let i=1;i<starN.length;i++){ctx.beginPath();ctx.moveTo(starN[0].x,starN[0].y);ctx.lineTo(starN[i].x,starN[i].y);ctx.strokeStyle=starFailed?'#fca5a5':'#bfdbfe';ctx.lineWidth=1.5;ctx.setLineDash(starFailed?[6,4]:[]);ctx.stroke();ctx.setLineDash([]);}
+  drawHub(ctx,starN[0],starFailed);
+  for(let i=1;i<starN.length;i++){const st=starSel[0]===i?'src':starSel[1]===i?'dst':'normal';drawPC(ctx,starN[i],SL[i-1],st);}
+  if(pkt){ctx.beginPath();ctx.arc(pkt.x,pkt.y,9,0,Math.PI*2);ctx.fillStyle='#1a56db';ctx.fill();ctx.beginPath();ctx.arc(pkt.x,pkt.y,15,0,Math.PI*2);ctx.strokeStyle='rgba(26,86,219,.2)';ctx.lineWidth=2;ctx.stroke();}
+}
+
+function starSend(){const c=document.getElementById('starC');if(!c)return;if(starFailed){sLog('Switch je offline — paket nedoručen!','err');return;}if(starSel.length<2)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');const src=starN[starSel[0]],dst=starN[starSel[1]];const sl=SL[starSel[0]-1],dl=SL[starSel[1]-1];document.getElementById('sSendBtn').disabled=true;sLog('PC-'+sl+' odesílá rámec na switch...','info');let t=0,phase=0;starPkt={...src};function fr(){if(phase===0){t+=0.016;if(t>=1){t=0;phase=1;sLog('Switch vyhledal MAC → port PC-'+dl,'warn');}starPkt={x:lerp(src.x,starN[0].x,Math.min(t,1)),y:lerp(src.y,starN[0].y,Math.min(t,1))};} else{t+=0.016;if(t>=1){starPkt=null;starSel=[];sLog('PC-'+dl+' přijal rámec ✓','ok');sStat('Doručeno! Vyber nového odesílatele.');document.getElementById('sSendBtn').disabled=true;drawStar(ctx,W,H,null);return;}starPkt={x:lerp(starN[0].x,dst.x,t),y:lerp(starN[0].y,dst.y,t)};}drawStar(ctx,W,H,starPkt);starAnimId=requestAnimationFrame(fr);}starAnimId=requestAnimationFrame(fr);}
+function starFail(){starFailed=!starFailed;const btn=document.getElementById('sFailBtn');if(starFailed){btn.textContent='Obnovit switch';btn.className='btn btn-ok';sLog('Switch selhal — CELÁ SÍŤ offline!','err');sStat('Switch je offline. Žádné PC nemůže komunikovat.');}else{btn.textContent='Simulovat výpadek switche';btn.className='btn btn-danger';sLog('Switch obnoven.','ok');sStat('Síť je zpět online.');}starSel=[];document.getElementById('sSendBtn').disabled=true;starPkt=null;const c=document.getElementById('starC');if(c)drawStar(c.getContext('2d'),c.width,c.height,null);}
+
+/* ── LEKCE 3: DEEP ── */
+const DSTEPS=[{title:'Každé PC má vlastní port',desc:'Na rozdíl od BUS topologie, kde všichni sdílejí jedno médium, má každé PC ve STAR topologii vlastní dedikovaný kabel. Šířka pásma se nesdílí — full-duplex provoz na každém spoji.',pkt:null,hl:[]},{title:'PC-A odesílá rámec',desc:'PC-A zapouzdří data do rámce: přidá svou MAC adresu jako zdroj a MAC adresu PC-D jako cíl. Rámec odešle kabelem na switch.',pkt:{f:1,t:0},hl:[1,0]},{title:'Switch přijme a vyhledá MAC',desc:'Switch přijme rámec na portu PC-A. Podívá se do CAM tabulky: "Na jakém portu je cílová MAC?" Pokud ji nezná, použije flooding — rozešle rámec na VŠECHNY porty kromě zdrojového.',pkt:null,hl:[0]},{title:'Unicast přeposlání na PC-D',desc:'Switch zná MAC adresu PC-D. Přepošle rámec POUZE na port PC-D. Ostatní PC nic nevidí — to je klíčová výhoda switche oproti hubu, kde by broadcast dostal každý.',pkt:{f:0,t:4},hl:[0,4]},{title:'PC-D přijme a odpoví (ACK)',desc:'PC-D přijme rámec, zpracuje data a odešle potvrzení zpět přes switch. Switch přitom aktualizuje CAM tabulku — příště bude přeposílání rychlejší.',pkt:{f:4,t:1},hl:[4,1]},];
+let dStep=0,dAnimId=null,dPkt=null,dT=0;
+function bDeep(){return`
+<div class="text-block"><p>Pochopení rozdílu mezi <strong>hubem</strong> a <strong>switchem</strong> je klíčové pro VŠ studium sítí. Hub je jednoduchý opakovač — kopíruje signál na všechny porty. Switch je inteligentní — buduje CAM tabulku MAC adres a posílá rámce jen správnému příjemci.</p></div>
+<div class="def-grid">
+  <div class="def-card"><div class="def-term">Hub (vrstva 1)</div><div class="def-val">Přijme signál → rozešle na VŠECHNY porty. Broadcast doména = celá síť. Kolize možné.</div></div>
+  <div class="def-card"><div class="def-term">Switch (vrstva 2)</div><div class="def-val">Přijme rámec → vyhledá MAC v CAM tabulce → pošle jen správnému portu. Každý port = vlastní kolizní doména.</div></div>
+</div>
+<div class="slabel">Krok za krokem</div>
+<div class="step-pills" id="dPills"></div>
+<div class="expl-card"><div class="expl-num" id="dNum"></div><div class="expl-title" id="dTitle"></div><div class="expl-desc" id="dDesc"></div></div>
+<div class="cvs-wrap"><canvas id="deepC" width="560" height="280"></canvas></div>
+<div class="expl-nav">
+  <button class="btn btn-ghost" id="dPrev" onclick="deepPrev()">← Zpět</button>
+  <button class="btn btn-primary" id="dNext" onclick="deepNext()">Další →</button>
+</div>
+<div class="hl hl-green">${hlIcon('check')}<div><strong>Zapamatuj si:</strong> Switch = vrstva 2 &nbsp;·&nbsp; MAC adresy &nbsp;·&nbsp; CAM tabulka &nbsp;·&nbsp; unicast. Router = vrstva 3 &nbsp;·&nbsp; IP adresy &nbsp;·&nbsp; směrovací tabulka.</div></div>`;}
+
+function postRenderDeep(){const c=document.getElementById('deepC');if(!c)return;const W=c.width,H=c.height;const ns=[v(W/2,H/2-8)];for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ns.push(v(W/2+112*Math.cos(a),H/2-8+96*Math.sin(a)));}dStep=0;dPkt=null;
+function draw(p){const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);ctx.setLineDash([]);const s=DSTEPS[dStep];for(let i=1;i<ns.length;i++){const hl=s.hl.includes(i)&&s.hl.includes(0);ctx.beginPath();ctx.moveTo(ns[0].x,ns[0].y);ctx.lineTo(ns[i].x,ns[i].y);ctx.strokeStyle=hl?'#1a56db':'#bfdbfe';ctx.lineWidth=hl?2:1.5;ctx.stroke();}const hhl=s.hl.includes(0);ctx.beginPath();ctx.arc(ns[0].x,ns[0].y,22,0,Math.PI*2);ctx.fillStyle=hhl?'#dbeafe':'#eff6ff';ctx.fill();ctx.strokeStyle=hhl?'#1a56db':'#bfdbfe';ctx.lineWidth=hhl?2:1;ctx.stroke();ctx.fillStyle=hhl?'#1e40af':'#6b7280';ctx.font='600 9px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Switch',ns[0].x,ns[0].y-1);ctx.fillStyle='#3b82f6';ctx.font='500 8px Inter,system-ui';ctx.fillText('CAM',ns[0].x,ns[0].y+10);for(let i=1;i<ns.length;i++){const hi=s.hl.includes(i);ctx.beginPath();ctx.arc(ns[i].x,ns[i].y,16,0,Math.PI*2);ctx.fillStyle=hi?'#dbeafe':'#ffffff';ctx.fill();ctx.strokeStyle=hi?'#1a56db':'#bfdbfe';ctx.lineWidth=hi?2:1;ctx.stroke();ctx.fillStyle=hi?'#1e40af':'#9ca3af';ctx.font='500 10px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('PC-'+SL[i-1],ns[i].x,ns[i].y+19);}if(p){ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.fillStyle='#1a56db';ctx.fill();}}
+window._dDraw=draw;window._dNS=ns;renderDStep();}
+function renderDStep(){const s=DSTEPS[dStep];const pills=document.getElementById('dPills');if(!pills)return;pills.innerHTML=DSTEPS.map((_,i)=>`<div class="sp ${i<dStep?'done':i===dStep?'on':''}"></div>`).join('');document.getElementById('dNum').textContent='Krok '+(dStep+1)+' z '+DSTEPS.length;document.getElementById('dTitle').textContent=s.title;document.getElementById('dDesc').textContent=s.desc;document.getElementById('dPrev').disabled=dStep===0;document.getElementById('dNext').textContent=dStep===DSTEPS.length-1?'Znovu ↺':'Další →';if(dAnimId)cancelAnimationFrame(dAnimId);dPkt=null;if(!s.pkt){if(window._dDraw)window._dDraw(null);return;}const ns=window._dNS;if(!ns)return;const from=ns[s.pkt.f],to=ns[s.pkt.t];dT=0;dPkt={...from};function fr(){dT+=0.012;if(dT>1)dT=1;dPkt={x:lerp(from.x,to.x,dT),y:lerp(from.y,to.y,dT)};if(window._dDraw)window._dDraw(dPkt);if(dT<1)dAnimId=requestAnimationFrame(fr);}dAnimId=requestAnimationFrame(fr);}
+function deepNext(){if(dStep>=DSTEPS.length-1)dStep=0;else dStep++;renderDStep();}
+function deepPrev(){if(dStep>0){dStep--;renderDStep();}}
+
+/* ── LEKCE 4: BUS ── */
+let busN=[],busSel=[],busPkt=null,busFailed=false;
+function bBus(){return`
+<div class="text-block"><p>Topologie BUS (sběrnice) propojuje všechna zařízení jedním sdíleným kabelem. Na obou koncích jsou <strong>terminátory</strong> (50 Ω), které absorbují signál a zabraňují jeho odrazu zpět.</p></div>
+<div class="hl hl-amber">${hlIcon('warn')}<div><strong>CSMA/CD:</strong> Před odesláním uzel naslouchá, zda je médium volné (Carrier Sense). Při kolizi oba uzly čekají náhodnou dobu (exponential backoff) a zkusí znovu. BUS byl standard pro Ethernet 10BASE2.</div></div>
+<div class="slabel">Simulace</div>
+<div class="status-bar" id="bStat">Klikni na PC — vyber odesílatele a příjemce.</div>
+<div class="btn-row">
+  <button class="btn btn-primary" id="bSendBtn" disabled onclick="busSend()">Odeslat ▶</button>
+  <button class="btn btn-danger" id="bFailBtn" onclick="busFail()">Přerušit sběrnici</button>
+</div>
+<div class="log-box" id="bLog"></div>
+<div class="cvs-wrap" style="margin-top:.75rem"><canvas id="busC" width="560" height="220"></canvas><div class="cvs-hint">T = terminátor (50 Ω) · Zelená tečka = paket na sběrnici</div></div>
+<div class="hl hl-red">${hlIcon('warn')}<div><strong>Slabina BUS:</strong> Přerušení kabelu kdekoliv způsobí výpadek celé sítě — signál se nemůže šířit. To je hlavní důvod, proč BUS topologie vyšla z provozu.</div></div>`;}
+
+function postRenderBus(){const c=document.getElementById('busC');if(!c)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');busN=[];for(let i=0;i<6;i++)busN.push(v(34+i*(W-68)/5,H/2-25));busSel=[];busPkt=null;busFailed=false;c.onclick=e=>{if(busPkt)return;const r=c.getBoundingClientRect();const mx=(e.clientX-r.left)*(W/r.width),my=(e.clientY-r.top)*(H/r.height);let hi=-1;for(let i=0;i<busN.length;i++)if(dist(busN[i],{x:mx,y:my})<20)hi=i;if(hi<0)return;const lbl=SL[hi];if(busSel.length===0){busSel=[hi];bStat('Odesílatel: PC-'+lbl+'. Vyber příjemce.');}else if(busSel.length===1){if(busSel[0]===hi){busSel=[];bStat('Klikni na odesílatele.');}else{busSel=[busSel[0],hi];bStat('PC-'+SL[busSel[0]]+' → PC-'+lbl+'. Stiskni Odeslat ▶');document.getElementById('bSendBtn').disabled=false;}}else{busSel=[hi];document.getElementById('bSendBtn').disabled=true;bStat('Odesílatel: PC-'+lbl+'. Vyber příjemce.');}drawBus(ctx,W,H,null);};drawBus(ctx,W,H,null);}
+function bStat(t){const el=document.getElementById('bStat');if(el)el.textContent=t;}
+function bLog(m,t='info'){const b=document.getElementById('bLog');if(!b)return;const e=document.createElement('div');e.className='lg '+t;e.textContent='› '+m;b.prepend(e);while(b.children.length>15)b.lastChild.remove();}
+function drawBus(ctx,W,H,pkt){ctx.clearRect(0,0,W,H);ctx.setLineDash([]);const by=H/2-25;ctx.strokeStyle=busFailed?'#dc2626':'#1a56db';ctx.lineWidth=3;ctx.setLineDash(busFailed?[8,5]:[]);ctx.beginPath();ctx.moveTo(16,by);ctx.lineTo(W-16,by);ctx.stroke();ctx.setLineDash([]);[16,W-16].forEach(tx=>{ctx.beginPath();ctx.arc(tx,by,8,0,Math.PI*2);ctx.fillStyle='#1a56db';ctx.fill();ctx.fillStyle='white';ctx.font='700 8px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('T',tx,by);});ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1;busN.forEach(n=>{ctx.beginPath();ctx.moveTo(n.x,by);ctx.lineTo(n.x,n.y-19);ctx.stroke();});busN.forEach((n,i)=>{const st=busSel[0]===i?'src':busSel[1]===i?'dst':'normal';drawPC(ctx,n,SL[i],st);});if(pkt){ctx.beginPath();ctx.arc(pkt.x,pkt.y,9,0,Math.PI*2);ctx.fillStyle='#16a34a';ctx.fill();ctx.beginPath();ctx.arc(pkt.x,pkt.y,15,0,Math.PI*2);ctx.strokeStyle='rgba(22,163,74,.2)';ctx.lineWidth=2;ctx.stroke();}}
+function busSend(){const c=document.getElementById('busC');if(!c)return;if(busFailed){bLog('Sběrnice přerušena — paket nedoručen!','err');return;}if(busSel.length<2)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');const by=H/2-25;const src=busN[busSel[0]],dst=busN[busSel[1]];const sl=SL[busSel[0]],dl=SL[busSel[1]];document.getElementById('bSendBtn').disabled=true;bLog('PC-'+sl+' naslouchá (CSMA)... médium volné','info');const pts=[src,v(src.x,by),v(dst.x,by),dst];let si=0,t=0;busPkt={...pts[0]};setTimeout(()=>{bLog('PC-'+sl+' vysílá broadcast po sběrnici...','warn');function fr(){t+=0.014;if(t>=1){t=0;si++;if(si>=pts.length-1){busPkt=null;busSel=[];bLog('PC-'+dl+' přijal rámec (ostatní zahodili) ✓','ok');bStat('Doručeno! Všechna PC rámec viděla, jen PC-'+dl+' ho přijalo.');document.getElementById('bSendBtn').disabled=true;drawBus(ctx,W,H,null);return;}}busPkt={x:lerp(pts[si].x,pts[si+1].x,t),y:lerp(pts[si].y,pts[si+1].y,t)};drawBus(ctx,W,H,busPkt);requestAnimationFrame(fr);}requestAnimationFrame(fr);},600);}
+function busFail(){busFailed=!busFailed;const btn=document.getElementById('bFailBtn');if(busFailed){btn.textContent='Opravit sběrnici';btn.className='btn btn-ok';bLog('Sběrnice přerušena — celá síť offline!','err');bStat('Sběrnice je přerušena. Signál se nemůže šířit.');}else{btn.textContent='Přerušit sběrnici';btn.className='btn btn-danger';bLog('Sběrnice opravena.','ok');bStat('Síť je zpět online.');}busSel=[];document.getElementById('bSendBtn').disabled=true;busPkt=null;const c=document.getElementById('busC');if(c)drawBus(c.getContext('2d'),c.width,c.height,null);}
+
+/* ── LEKCE 5: RING ── */
+let ringN=[],ringSel=[],ringPkt=null,ringFailed=false;
+function bRing(){return`
+<div class="text-block"><p>Topologie RING (kruh) propojuje každé zařízení s předchozím a následujícím. Data se šíří pouze <strong>jedním směrem</strong>. Přístup k médiu řídí speciální rámec — <strong>token (žeton)</strong>.</p></div>
+<div class="hl hl-blue">${hlIcon('info')}<div><strong>Token passing:</strong> Prázdný token obíhá kruhem. Uzel, který chce vysílat, musí počkat na token, zachytit ho a připojit data. V daný okamžik vysílá jen jeden uzel — žádné kolize. Deterministická metoda přístupu k médiu (IEEE 802.5, FDDI).</div></div>
+<div class="slabel">Simulace</div>
+<div class="status-bar" id="rStat">Klikni na PC — vyber odesílatele a příjemce.</div>
+<div class="btn-row">
+  <button class="btn btn-primary" id="rSendBtn" disabled onclick="ringSend()">Odeslat ▶</button>
+  <button class="btn btn-danger" id="rFailBtn" onclick="ringFail()">Přerušit kruh</button>
+</div>
+<div class="log-box" id="rLog"></div>
+<div class="cvs-wrap" style="margin-top:.75rem"><canvas id="ringC" width="560" height="310"></canvas><div class="cvs-hint">Šipky ukazují směr toku dat · oranžová tečka = token/paket</div></div>
+<div class="hl hl-amber">${hlIcon('warn')}<div><strong>Slabina RING:</strong> Výpadek libovolného uzlu nebo kabelu přeruší celý kruh. Token nemůže obíhat a síť přestane fungovat. Přidání nového PC také vyžaduje výpadek.</div></div>`;}
+
+function postRenderRing(){const c=document.getElementById('ringC');if(!c)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');ringN=[];for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ringN.push(v(W/2+120*Math.cos(a),H/2+6+106*Math.sin(a)));}ringSel=[];ringPkt=null;ringFailed=false;c.onclick=e=>{if(ringPkt)return;const r=c.getBoundingClientRect();const mx=(e.clientX-r.left)*(W/r.width),my=(e.clientY-r.top)*(H/r.height);let hi=-1;for(let i=0;i<ringN.length;i++)if(dist(ringN[i],{x:mx,y:my})<20)hi=i;if(hi<0)return;const lbl=SL[hi];if(ringSel.length===0){ringSel=[hi];rStat('Odesílatel: PC-'+lbl+'. Vyber příjemce.');}else if(ringSel.length===1){if(ringSel[0]===hi){ringSel=[];rStat('Klikni na odesílatele.');}else{ringSel=[ringSel[0],hi];rStat('PC-'+SL[ringSel[0]]+' → PC-'+lbl+'. Stiskni Odeslat ▶');document.getElementById('rSendBtn').disabled=false;}}else{ringSel=[hi];document.getElementById('rSendBtn').disabled=true;rStat('Odesílatel: PC-'+lbl+'. Vyber příjemce.');}drawRing(ctx,W,H,null);};drawRing(ctx,W,H,null);}
+function rStat(t){const el=document.getElementById('rStat');if(el)el.textContent=t;}
+function rLog(m,t='info'){const b=document.getElementById('rLog');if(!b)return;const e=document.createElement('div');e.className='lg '+t;e.textContent='› '+m;b.prepend(e);while(b.children.length>15)b.lastChild.remove();}
+function drawRing(ctx,W,H,pkt){ctx.clearRect(0,0,W,H);ctx.setLineDash([]);for(let i=0;i<ringN.length;i++){const nxt=(i+1)%ringN.length;ctx.beginPath();ctx.moveTo(ringN[i].x,ringN[i].y);ctx.lineTo(ringN[nxt].x,ringN[nxt].y);ctx.strokeStyle=ringFailed?'#fca5a5':'#bfdbfe';ctx.lineWidth=1.5;ctx.setLineDash(ringFailed?[6,4]:[]);ctx.stroke();ctx.setLineDash([]);if(!ringFailed){const mx=(ringN[i].x+ringN[nxt].x)/2,my=(ringN[i].y+ringN[nxt].y)/2;const ang=Math.atan2(ringN[nxt].y-ringN[i].y,ringN[nxt].x-ringN[i].x);ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(-5,-4);ctx.lineTo(5,0);ctx.lineTo(-5,4);ctx.strokeStyle='#d97706';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}}ringN.forEach((n,i)=>{const st=ringSel[0]===i?'src':ringSel[1]===i?'dst':'normal';drawPC(ctx,n,SL[i],st);});if(pkt){ctx.beginPath();ctx.arc(pkt.x,pkt.y,9,0,Math.PI*2);ctx.fillStyle='#d97706';ctx.fill();ctx.beginPath();ctx.arc(pkt.x,pkt.y,15,0,Math.PI*2);ctx.strokeStyle='rgba(217,119,6,.2)';ctx.lineWidth=2;ctx.stroke();}}
+function ringSend(){const c=document.getElementById('ringC');if(!c)return;if(ringFailed){rLog('Kruh přerušen — paket nedoručen!','err');return;}if(ringSel.length<2)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');const sl=SL[ringSel[0]],dl=SL[ringSel[1]];document.getElementById('rSendBtn').disabled=true;rLog('PC-'+sl+' čeká na token...','info');const n=ringN.length;const path=[ringN[ringSel[0]]];let cur=ringSel[0];while(cur!==ringSel[1]){cur=(cur+1)%n;path.push(ringN[cur]);}setTimeout(()=>{rLog('Token zachycen! PC-'+sl+' vysílá ('+(path.length-1)+' hopů)','warn');let si=0,t=0;ringPkt={...path[0]};function fr(){t+=0.014;if(t>=1){t=0;si++;if(si>=path.length-1){ringPkt=null;ringSel=[];rLog('PC-'+dl+' přijal rámec · token uvolněn ✓','ok');rStat('Doručeno za '+(path.length-1)+' hop(ů). Token obíhá dál.');document.getElementById('rSendBtn').disabled=true;drawRing(ctx,W,H,null);return;}}ringPkt={x:lerp(path[si].x,path[si+1].x,t),y:lerp(path[si].y,path[si+1].y,t)};drawRing(ctx,W,H,ringPkt);requestAnimationFrame(fr);}requestAnimationFrame(fr);},700);}
+function ringFail(){ringFailed=!ringFailed;const btn=document.getElementById('rFailBtn');if(ringFailed){btn.textContent='Opravit kruh';btn.className='btn btn-ok';rLog('Kruh přerušen — celá síť offline!','err');rStat('Kruh je přerušen. Token nemůže obíhat.');}else{btn.textContent='Přerušit kruh';btn.className='btn btn-danger';rLog('Kruh opraven.','ok');rStat('Síť je zpět online.');}ringSel=[];document.getElementById('rSendBtn').disabled=true;ringPkt=null;const c=document.getElementById('ringC');if(c)drawRing(c.getContext('2d'),c.width,c.height,null);}
+
+/* ── LEKCE 6: SROVNÁNÍ ── */
+const CMP_DATA={
+  star:{color:'#1a56db',metrics:[{l:'Odolnost PC výpadku',v:92},{l:'Efektivita přenosu',v:85},{l:'Jednoduchost správy',v:88},{l:'Nízké náklady',v:52}],pros:['Výpadek 1 PC neovlivní ostatní','Snadná diagnostika, plug & play','Switch = unicast, žádné kolize','Moderní Gigabit Ethernet (IEEE 802.3)'],cons:['Switch/hub = SPOF celé sítě','Více kabelů než BUS'],use:'Domácí LAN, kancelářské sítě, školy, datová centra',spof:'Centrální switch'},
+  bus:{color:'#16a34a',metrics:[{l:'Odolnost PC výpadku',v:42},{l:'Výkon při zátěži',v:33},{l:'Jednoduchost instalace',v:78},{l:'Nízké náklady',v:92}],pros:['Minimum kabeláže','Nízká pořizovací cena','Vhodné pro malé dočasné sítě'],cons:['Přerušení = celá síť offline','Kolize, broadcast (CSMA/CD)','Obtížná diagnostika poruch'],use:'Historický 10BASE2, průmyslové sběrnice (CAN bus)',spof:'Jakékoli přerušení kabelu'},
+  ring:{color:'#d97706',metrics:[{l:'Odolnost PC výpadku',v:38},{l:'Deterministická latence',v:95},{l:'Absence kolizí',v:98},{l:'Nízké náklady',v:60}],pros:['Žádné kolize (token passing)','Deterministická latence','Každý uzel = stejná priorita'],cons:['Výpadek uzlu = síť offline','Přidání PC = výpadek sítě','Větší latence při mnoha uzlech'],use:'Token Ring (IBM 802.5), FDDI, průmyslová automatizace',spof:'Jakýkoli uzel nebo kabel v kruhu'},
+};
+let cmpCur='star';
+function bCmp(){return`
+<div class="text-block"><p>Nyní, když znáš všechny tři topologie z praxe, je čas je porovnat. Každá má své místo — výběr závisí na požadavcích na spolehlivost, cenu a charakter provozu.</p></div>
+<div class="topo-row">
+  <button class="topo-pill on" onclick="setCmpTab('star',this)">STAR</button>
+  <button class="topo-pill" onclick="setCmpTab('bus',this)">BUS</button>
+  <button class="topo-pill" onclick="setCmpTab('ring',this)">RING</button>
+</div>
+<div class="cmp-split">
+  <div class="cmp-cvs"><canvas id="cmpC" width="240" height="220"></canvas></div>
+  <div class="cmp-side" id="cmpSide"></div>
+</div>`;}
+function postRenderCmp(){cmpCur='star';renderCmp();}
+function setCmpTab(t,el){cmpCur=t;document.querySelectorAll('.topo-pill').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderCmp();}
+function renderCmp(){const c=document.getElementById('cmpC');if(!c)return;const W=c.width,H=c.height;const ctx=c.getContext('2d');const d=CMP_DATA[cmpCur];ctx.clearRect(0,0,W,H);ctx.setLineDash([]);const ns=[];if(cmpCur==='star'){const h=v(W/2,H/2-5);ns.push(h);for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ns.push(v(W/2+88*Math.cos(a),H/2-5+76*Math.sin(a)));}ns.slice(1).forEach(n=>{ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.lineTo(n.x,n.y);ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1.5;ctx.stroke();});ctx.beginPath();ctx.arc(h.x,h.y,20,0,Math.PI*2);ctx.fillStyle='#dbeafe';ctx.fill();ctx.strokeStyle=d.color;ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=d.color;ctx.font='600 9px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Switch',h.x,h.y);ns.slice(1).forEach((n,i)=>{ctx.beginPath();ctx.arc(n.x,n.y,12,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#9ca3af';ctx.font='500 8px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(SL[i],n.x,n.y);});}else if(cmpCur==='bus'){for(let i=0;i<6;i++)ns.push(v(18+i*(W-36)/5,H/2-22));ctx.strokeStyle=d.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,H/2-22);ctx.lineTo(W-10,H/2-22);ctx.stroke();[10,W-10].forEach(tx=>{ctx.beginPath();ctx.arc(tx,H/2-22,6,0,Math.PI*2);ctx.fillStyle=d.color;ctx.fill();ctx.fillStyle='white';ctx.font='700 7px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('T',tx,H/2-22);});ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1;ns.forEach(n=>{ctx.beginPath();ctx.moveTo(n.x,H/2-22);ctx.lineTo(n.x,n.y-14);ctx.stroke();});ns.forEach((n,i)=>{ctx.beginPath();ctx.arc(n.x,n.y,12,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#9ca3af';ctx.font='500 8px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(SL[i],n.x,n.y);});}else{for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ns.push(v(W/2+88*Math.cos(a),H/2+5+76*Math.sin(a)));}for(let i=0;i<6;i++){const nxt=(i+1)%6;ctx.beginPath();ctx.moveTo(ns[i].x,ns[i].y);ctx.lineTo(ns[nxt].x,ns[nxt].y);ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1.5;ctx.stroke();const mx=(ns[i].x+ns[nxt].x)/2,my=(ns[i].y+ns[nxt].y)/2;const ang=Math.atan2(ns[nxt].y-ns[i].y,ns[nxt].x-ns[i].x);ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(-4,-3);ctx.lineTo(4,0);ctx.lineTo(-4,3);ctx.strokeStyle=d.color;ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}ns.forEach((n,i)=>{ctx.beginPath();ctx.arc(n.x,n.y,12,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();ctx.strokeStyle='#bfdbfe';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#9ca3af';ctx.font='500 8px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(SL[i],n.x,n.y);});}document.getElementById('cmpSide').innerHTML=`<div style="margin-bottom:.875rem">${d.metrics.map(m=>`<div class="bar-row"><div class="bar-lbl"><span>${m.l}</span><span>${m.v} %</span></div><div class="bar-track"><div class="bar-fill" style="width:${m.v}%;background:${d.color}"></div></div></div>`).join('')}</div><div class="pc-grid"><div class="pc-card pc-pos"><strong>Výhody</strong>${d.pros.join('<br>')}</div><div class="pc-card pc-neg"><strong>Nevýhody</strong>${d.cons.join('<br>')}</div></div><div class="cmp-meta"><b>Použití:</b> ${d.use}<br><b>SPOF:</b> ${d.spof}</div>`;}
+
+/* ── LEKCE 7: KVÍZ ── */
+const QS=[{q:'Co je CAM tabulka ve switchi?',opts:['Tabulka IP adres pro směrování','Tabulka MAC adres a odpovídajících portů','Seznam povolených uživatelů','Cache pro DNS záznamy'],ans:1,exp:'CAM (Content Addressable Memory) tabulka mapuje MAC adresy na fyzické porty switche. Switch ji buduje dynamicky — při příchodu rámce si zapamatuje, z jakého portu přišla zdrojová MAC adresa.'},{q:'Proč STAR topologie odolá výpadku jednoho PC, ale ne výpadku switche?',opts:['Protože switch je dražší zařízení','Každé PC je připojeno pouze ke switchi — bez něj nemůže komunikovat vůbec','Protože switch řídí IP adresy','Kabely jsou fyzicky propojeny přes switch'],ans:1,exp:'STAR topologie má hvězdicovou architekturu — vše prochází centrem. Výpadek jednoho paprsku (PC + kabel) neovlivní ostatní, ale výpadek středu (switch) odpojí všechna zařízení — to je SPOF.'},{q:'Co se stane, když dva uzly vyšlou data zároveň v BUS topologii?',opts:['Switch přesměruje provoz','Nastane kolize — oba uzly detekují a čekají náhodnou dobu (CSMA/CD)','Data se automaticky seřadí','Pomalejší uzel počká'],ans:1,exp:'CSMA/CD: při kolizi oba uzly přestanou vysílat, čekají náhodnou dobu (exponential backoff) a zkusí znovu. Čím více uzlů, tím více kolizí a nižší efektivní přenosová rychlost.'},{q:'Proč token passing v RING topologii eliminuje kolize?',opts:['RING používá jiný typ kabelu','V daný okamžik smí vysílat jen ten uzel, který drží token — média nelze obsadit dvěma najednou','Data se šíří oběma směry','Switch řídí přístup k médiu'],ans:1,exp:'Token passing je deterministická metoda přístupu k médiu. Prázdný token obíhá kruhem. Uzel musí počkat, až token přijde — teprve pak může vysílat. Kolize jsou fyzicky nemožné.'},{q:'Na které vrstvě OSI modelu pracuje switch?',opts:['Vrstva 1 — fyzická','Vrstva 2 — linková (Data Link)','Vrstva 3 — síťová','Vrstva 4 — transportní'],ans:1,exp:'Switch pracuje na vrstvě 2 (Data Link Layer). Pracuje s MAC adresami a rámci. Router pracuje na vrstvě 3 s IP adresami a pakety. Hub je zařízení vrstvy 1 — jen opakuje signál.'},{q:'Proč terminátory v BUS topologii nejsou volitelné, ale nutné?',opts:['Zvyšují přenosovou rychlost sběrnice','Bez nich se signál odrazí na konci kabelu a interferuje s daty','Chrání zařízení před přepětím','Synchronizují hodiny uzlů na sběrnici'],ans:1,exp:'Signál se na konci vodiče bez zakončení odrazí zpět. Odražený signál interferuje s přicházejícími daty a způsobí chyby. Terminátor (50 Ω) signál pohltí a zabrání odrazu.'},{q:'Která topologie je nejvhodnější pro průmyslový řídicí systém vyžadující předvídatelnou latenci?',opts:['STAR se switchem','BUS s CSMA/CD','RING s token passing','MESH s BGP směrováním'],ans:2,exp:'Průmyslové systémy potřebují deterministické časování. Token passing v RING garantuje, že každý uzel dostane token v pevném intervalu — bez náhodných prodlev způsobených kolizemi.'},{q:'Co se stane, když v STAR topologii přidám nové PC?',opts:['Musím restartovat celou síť','Stačí zapojit kabel do volného portu switche — síť jede dál','Musím překonfigurovat všechna ostatní PC','Musím přerušit kruh a vložit nový uzel'],ans:1,exp:'Přidání nového uzlu ve STAR topologii nevyžaduje výpadek sítě. Stačí zapojit kabel do volného portu switche. Switch si automaticky naučí MAC adresu nového PC při prvním přijatém rámci.'},];
+let qI=0,qDone=false;
+function bQuiz(){return`<div id="qBox"></div>`;}
+function postRenderQuiz(){qI=0;qDone=false;qResults=[];renderQ();}
+function renderQ(){const box=document.getElementById('qBox');if(!box)return;if(qI>=QS.length){const sc=qResults.filter(r=>r).length;box.innerHTML=`<div class="complete"><div class="complete-star">★</div><div class="complete-score">${sc} / ${QS.length}</div><div class="q-score-dots">${qResults.map(r=>`<span class="qdot ${r?'ok':'bad'}"></span>`).join('')}</div><div class="complete-sub">${sc===QS.length?'Perfektní výsledek! Skvělé zvládnutí látky.':sc>=6?'Výborně! Pár drobností k doplnění.':sc>=4?'Dobrý základ — doporučujeme projít lekce znovu.':'Zkus projít kurz ještě jednou, teorie je základ.'}</div><button class="btn btn-primary" onclick="qI=0;qDone=false;qResults=[];renderQ()" style="display:inline-block">Zkusit znovu</button></div>`;return;}const q=QS[qI],pct=Math.round(qI/QS.length*100);box.innerHTML=`<div class="q-prog-wrap"><div class="q-prog" style="width:${pct}%"></div></div><div class="q-meta">Otázka ${qI+1} z ${QS.length}</div><div class="q-text">${q.q}</div><div class="q-opts">${q.opts.map((o,i)=>`<button class="q-opt" id="qo${i}" onclick="qAns(${i})">${o}</button>`).join('')}</div><div id="qExp" class="q-exp" style="display:none"></div><button id="qNxt" class="btn btn-primary" style="display:none" onclick="qI++;qDone=false;renderQ()">Další otázka →</button>`;}
+function qAns(i){if(qDone)return;qDone=true;const q=QS[qI];const ok=i===q.ans;qResults.push(ok);for(let j=0;j<q.opts.length;j++){const b=document.getElementById('qo'+j);b.disabled=true;if(j===q.ans)b.classList.add('correct');else if(j===i)b.classList.add('wrong');}document.getElementById('qExp').style.display='block';document.getElementById('qExp').textContent=q.exp;document.getElementById('qNxt').style.display='inline-block';}
+
+function renderComplete(){const sc=qResults.filter(r=>r).length;document.getElementById('lessonCard').innerHTML=`<div class="lesson-body"><div class="complete"><div class="complete-star">★</div><div class="complete-title">Kurz dokončen!</div><div class="complete-score">${sc} / ${QS.length} správně</div><div class="complete-sub">Prošel jsi STAR, BUS i RING topologii — od základů přes interaktivní simulace až po kvíz. Gratuluji!</div><button class="btn btn-primary" onclick="restart()">Začít kurz znovu</button></div></div>`;}
+function restart(){curL=0;done.clear();qResults=[];qI=0;render();updateProg();window.scrollTo({top:0,behavior:'smooth'});}
+function postRender(id){if(id==='star')postRenderStar();else if(id==='stardeep')postRenderDeep();else if(id==='bus')postRenderBus();else if(id==='ring')postRenderRing();else if(id==='compare')postRenderCmp();else if(id==='quiz')postRenderQuiz();}
+
+updateProg();render();
+</script>
+</body>
+</html>
