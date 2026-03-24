@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RouterOS Simulator — Výukový panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --accent: #00b4d8;
+    --accent2: #48cae4;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --input-bg: #0d1117;
+    --sidebar-w: 220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  /* TOP BAR */
+  .topbar {
+    background: var(--panel);
+    border-bottom: 2px solid var(--accent);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-brand {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .topbar-brand svg { width: 28px; height: 28px; }
+  .topbar-brand .name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .topbar-brand .model {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .topbar-status {
+    display: flex; align-items: center; gap: 18px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red { background: var(--red); }
+  .dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  /* LAYOUT */
+  .app-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .nav-section {
+    margin-bottom: 6px;
+  }
+  .nav-section-label {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 8px 18px 4px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 18px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--muted);
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(0,180,216,0.06); }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(0,180,216,0.1);
+  }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  /* MAIN CONTENT */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+  }
+  .page-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-subtitle {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  /* CARDS */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent2);
+    letter-spacing: 0.5px;
+  }
+  .card-body { padding: 20px; }
+  /* FORM ELEMENTS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .form-group input, .form-group select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group input.error { border-color: var(--red); }
+  .form-group .hint { font-size: 0.72rem; color: var(--muted); }
+  .form-group .err-msg { font-size: 0.72rem; color: var(--red); display: none; }
+  .form-group.has-error .err-msg { display: block; }
+  /* TOGGLE */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 0.88rem; }
+  .toggle-desc { font-size: 0.75rem; color: var(--muted); }
+  .toggle {
+    position: relative; width: 42px; height: 24px;
+    cursor: pointer;
+  }
+  .toggle input { display: none; }
+  .toggle-track {
+    width: 42px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    transition: background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: left 0.2s;
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { left: 21px; }
+  /* BUTTONS */
+  .btn {
+    padding: 9px 20px;
+    border-radius: 5px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+  }
+  .btn-danger:hover { background: rgba(248,81,73,0.1); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-row {
+    display: flex; gap: 10px; margin-top: 20px;
+    align-items: center;
+  }
+  /* TABLES */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  .data-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(0,180,216,0.04); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-blue { background: rgba(0,180,216,0.15); color: var(--accent); }
+  /* TOAST */
+  #toast-container {
+    position: fixed; bottom: 28px; right: 28px;
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 9999;
+  }
+  .toast {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--green);
+    border-radius: 6px;
+    padding: 12px 18px;
+    font-size: 0.84rem;
+    color: var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    animation: slideIn 0.2s ease;
+    min-width: 260px;
+    max-width: 340px;
+  }
+  .toast.err { border-left-color: var(--red); }
+  .toast.warn { border-left-color: var(--yellow); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  /* STAT BOXES */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .stat-box .label { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-box .value { font-family: 'Share Tech Mono', monospace; font-size: 1.3rem; color: var(--text); margin: 4px 0; }
+  .stat-box .sub { font-size: 0.75rem; color: var(--muted); }
+  /* INTERFACE DIAGRAM */
+  .iface-diagram {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; padding: 24px 0;
+    flex-wrap: wrap;
+  }
+  .iface-node {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    min-width: 80px;
+  }
+  .iface-box {
+    width: 64px; height: 40px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--muted);
+    background: var(--bg);
+    transition: all 0.2s;
+  }
+  .iface-box.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(0,180,216,0.2); }
+  .iface-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    min-width: 30px;
+    max-width: 60px;
+    margin-bottom: 16px;
+  }
+  .iface-line.active { background: var(--accent); }
+  .iface-name { font-size: 0.7rem; color: var(--muted); }
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  /* LOG */
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    height: 180px;
+    overflow-y: auto;
+    line-height: 1.7;
+  }
+  .log-line { color: var(--muted); }
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.info { color: var(--accent); }
+  /* HIDDEN PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ===== EDUCATIONAL ELEMENTS ===== */
+
+  /* Info banner at top of each page */
+  .edu-banner {
+    background: linear-gradient(135deg, rgba(0,180,216,0.08) 0%, rgba(72,202,228,0.04) 100%);
+    border: 1px solid rgba(0,180,216,0.25);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .edu-banner-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 1px; }
+  .edu-banner-content {}
+  .edu-banner-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 5px;
+    letter-spacing: 0.3px;
+  }
+  .edu-banner-text {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .edu-banner-text strong { color: var(--text); font-weight: 600; }
+  .edu-banner-text code {
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(0,0,0,0.3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    color: var(--accent2);
+  }
+  .edu-banner.warn-banner {
+    border-left-color: var(--yellow);
+    background: linear-gradient(135deg, rgba(210,153,34,0.08) 0%, rgba(210,153,34,0.03) 100%);
+  }
+  .edu-banner.warn-banner .edu-banner-title { color: var(--yellow); }
+
+  /* Tooltip on label */
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tip-btn {
+    width: 16px; height: 16px;
+    background: rgba(0,180,216,0.15);
+    border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 50%;
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    line-height: 1;
+    font-family: 'Barlow', sans-serif;
+  }
+  .tip-btn:hover { background: rgba(0,180,216,0.3); }
+  .tooltip-popup {
+    position: absolute;
+    z-index: 500;
+    background: #1c2333;
+    border: 1px solid rgba(0,180,216,0.4);
+    border-radius: 7px;
+    padding: 12px 15px;
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.6;
+    max-width: 280px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .tooltip-popup strong { color: var(--accent2); display: block; margin-bottom: 4px; font-size: 0.82rem; }
+  .tooltip-popup code {
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(0,0,0,0.3);
+    padding: 1px 4px; border-radius: 3px;
+    font-size: 0.77rem; color: var(--accent2);
+  }
+  .form-group { position: relative; }
+
+  /* Learn modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 28px 30px;
+    max-width: 560px;
+    width: 90%;
+    transform: translateY(16px);
+    transition: transform 0.2s;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 18px;
+  }
+  .modal-icon { font-size: 1.8rem; }
+  .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+  .modal-subtitle { font-size: 0.78rem; color: var(--muted); }
+  .learn-items { display: flex; flex-direction: column; gap: 14px; }
+  .learn-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 13px 15px;
+  }
+  .learn-item-title {
+    font-size: 0.85rem; font-weight: 700;
+    color: var(--text); margin-bottom: 5px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .learn-item-title .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .learn-item-body {
+    font-size: 0.8rem; color: var(--muted); line-height: 1.65;
+  }
+  .learn-item-body code {
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(0,180,216,0.1);
+    padding: 1px 5px; border-radius: 3px;
+    color: var(--accent2); font-size: 0.77rem;
+  }
+  .modal-footer { margin-top: 22px; display: flex; justify-content: flex-end; }
+
+  /* Key concepts chips on dashboard */
+  .concept-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .concept-chip {
+    background: rgba(0,180,216,0.08);
+    border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .concept-chip:hover { background: rgba(0,180,216,0.18); color: var(--accent2); }
+
+  /* Step guide box */
+  .step-guide {
+    background: rgba(63,185,80,0.06);
+    border: 1px solid rgba(63,185,80,0.2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .step-guide-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .step-list { display: flex; flex-direction: column; gap: 6px; }
+  .step-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 0.82rem; color: var(--muted); line-height: 1.5;
+  }
+  .step-num {
+    background: rgba(63,185,80,0.15);
+    color: var(--green);
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-item strong { color: var(--text); }
+
+
+  /* Inline notes */
+  .inline-note {
+    background: rgba(0,180,216,0.06);
+    border-left: 3px solid rgba(0,180,216,0.3);
+    border-radius: 0 5px 5px 0;
+    padding: 10px 14px;
+    font-size: 0.81rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  /* Better hint styling */
+  .form-group .hint {
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Responsive */
+  @media (max-width: 780px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid-3 { grid-template-columns: 1fr 1fr; }
+    .sidebar { width: 52px; }
+    .sidebar .nav-item span { display: none; }
+    .sidebar .nav-section-label { display: none; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect x="1" y="8" width="26" height="12" rx="3" stroke="#00b4d8" stroke-width="1.5"/>
+      <circle cx="5" cy="14" r="1.5" fill="#3fb950"/>
+      <circle cx="9" cy="14" r="1.5" fill="#3fb950"/>
+      <circle cx="13" cy="14" r="1.5" fill="#d29922"/>
+      <rect x="18" y="11" width="7" height="6" rx="1" fill="none" stroke="#00b4d8" stroke-width="1"/>
+      <line x1="14" y1="8" x2="14" y2="3" stroke="#00b4d8" stroke-width="1.5"/>
+      <line x1="11" y1="3" x2="17" y2="3" stroke="#00b4d8" stroke-width="1.5"/>
+    </svg>
+    <div>
+      <div class="name">ROUTEROS SIM</div>
+      <div class="model">Model: EDU-2400 · Firmware: 7.3.2</div>
+    </div>
+  </div>
+  <div class="topbar-status">
+    <span><span class="status-dot dot-green"></span>WAN: Připojeno</span>
+    <span id="uptime-display"><span class="status-dot dot-yellow"></span>Uptime: 00:00:00</span>
+    <span id="clock-display">--:--:--</span>
+  </div>
+</div>
+
+<div class="app-body">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-section">
+    <div class="nav-section-label">Přehled</div>
+    <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Síť</div>
+    <div class="nav-item" onclick="showPage('wan')" data-page="wan">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2 C6 5 6 11 8 14M8 2 C10 5 10 11 8 14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+      <span>WAN / Internet</span>
+    </div>
+    <div class="nav-item" onclick="showPage('lan')" data-page="lan">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="9" width="6" height="5" rx="1"/><rect x="1" y="1" width="4" height="3" rx="1"/><rect x="11" y="1" width="4" height="3" rx="1"/><line x1="8" y1="9" x2="8" y2="6"/><line x1="3" y1="4" x2="8" y2="6"/><line x1="13" y1="4" x2="8" y2="6"/></svg>
+      <span>LAN / DHCP</span>
+    </div>
+    <div class="nav-item" onclick="showPage('wifi')" data-page="wifi">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6 C4 2 12 2 15 6"/><path d="M3.5 8.5 C5 6.5 11 6.5 12.5 8.5"/><path d="M6 11 C7 10 9 10 10 11"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg>
+      <span>Wi-Fi</span>
+    </div>
+    <div class="nav-item" onclick="showPage('routing')" data-page="routing">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="8" x2="15" y2="8"/><polyline points="11,4 15,8 11,12"/><circle cx="5" cy="8" r="1.5"/></svg>
+      <span>Statické trasy</span>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Zabezpečení</div>
+    <div class="nav-item" onclick="showPage('firewall')" data-page="firewall">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1 L14 4 L14 9 C14 12 11 14.5 8 15 C5 14.5 2 12 2 9 L2 4 Z"/></svg>
+      <span>Firewall</span>
+    </div>
+    <div class="nav-item" onclick="showPage('nat')" data-page="nat">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="5" height="6" rx="1"/><rect x="10" y="5" width="5" height="6" rx="1"/><line x1="6" y1="8" x2="10" y2="8"/><polyline points="8,6 10,8 8,10"/></svg>
+      <span>NAT</span>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Systém</div>
+    <div class="nav-item" onclick="showPage('system')" data-page="system">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></svg>
+      <span>Systém</span>
+    </div>
+    <div class="nav-item" onclick="showPage('log')" data-page="log">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="1"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></svg>
+      <span>Log systému</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-title">Dashboard</div>
+  <div class="page-subtitle">Přehled stavu routeru a síťových rozhraní</div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="label">WAN IP</div>
+      <div class="value" id="stat-wan-ip" style="font-size:0.95rem">—</div>
+      <div class="sub" id="stat-wan-mode">Nezadáno</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">LAN Podsíť</div>
+      <div class="value" id="stat-lan-ip" style="font-size:0.95rem">—</div>
+      <div class="sub">Gateway routeru</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">DHCP Rozsah</div>
+      <div class="value" id="stat-dhcp-range" style="font-size:0.95rem">—</div>
+      <div class="sub" id="stat-dhcp-status">Vypnuto</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Wi-Fi</div>
+      <div class="value" id="stat-wifi-ssid" style="font-size:0.95rem">—</div>
+      <div class="sub" id="stat-wifi-status">Vypnuto</div>
+    </div>
+  </div>
+
+  <!-- Interface diagram -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Topologie rozhraní</div></div>
+    <div class="card-body">
+      <div class="iface-diagram">
+        <div class="iface-node">
+          <div class="iface-box" id="diag-internet">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="14" cy="10" r="8"/><path d="M14 2 C12 6 12 14 14 18M14 2 C16 6 16 14 14 18"/><line x1="6" y1="10" x2="22" y2="10"/>
+            </svg>
+          </div>
+          <div class="iface-name">Internet</div>
+        </div>
+        <div class="iface-line" id="diag-line-wan"></div>
+        <div class="iface-node">
+          <div class="iface-box active">
+            <svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="1" y="5" width="30" height="12" rx="2"/>
+              <circle cx="6" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="11" r="1.2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="iface-name" style="color:var(--accent)">Router</div>
+        </div>
+        <div class="iface-line" id="diag-line-lan"></div>
+        <div class="iface-node">
+          <div class="iface-box" id="diag-lan">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="6" width="24" height="8" rx="1"/><line x1="6" y1="14" x2="6" y2="18"/><line x1="14" y1="14" x2="14" y2="18"/><line x1="22" y1="14" x2="22" y2="18"/>
+            </svg>
+          </div>
+          <div class="iface-name">LAN Switch</div>
+        </div>
+        <div class="iface-line" id="diag-line-wifi"></div>
+        <div class="iface-node">
+          <div class="iface-box" id="diag-wifi">
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 6 C8 1 20 1 25 6"/><path d="M7 10 C10 7 18 7 21 10"/><path d="M11 14 C12.5 13 15.5 13 17 14"/><circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="iface-name" id="diag-wifi-label">Wi-Fi (off)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active routes summary -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Aktivní pravidla firewallu</div><span id="fw-count-badge" class="badge badge-blue">0 pravidel</span></div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Akce</th><th>Zdroj</th><th>Cíl</th><th>Port</th><th>Protokol</th></tr></thead>
+        <tbody id="fw-summary-tbody">
+          <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla firewallu</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- WAN PAGE -->
+<div class="page" id="page-wan">
+  <div class="page-title">WAN / Internet</div>
+  <div class="page-subtitle">Konfigurace připojení k poskytovateli internetu (ISP)</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Typ připojení</div></div>
+    <div class="card-body">
+      <div class="form-group" style="max-width:280px; margin-bottom:20px">
+        <label>Typ WAN připojení</label>
+        <select id="wan-type" onchange="wanTypeChange()">
+          <option value="dhcp">DHCP (automaticky od ISP)</option>
+          <option value="static">Statická IP adresa</option>
+          <option value="pppoe">PPPoE (DSL)</option>
+        </select>
+      </div>
+
+      <!-- DHCP info -->
+      <div id="wan-dhcp-section">
+        <div class="inline-note">Router automaticky získá IP adresu, masku, bránu a DNS od ISP. Žádná ruční konfigurace není potřeba.</div>
+      </div>
+
+      <!-- Static -->
+      <div id="wan-static-section" style="display:none">
+        <div class="form-grid">
+          <div class="form-group" id="fg-wan-ip">
+            <label>IP adresa (WAN)</label>
+            <input type="text" id="wan-ip" placeholder="85.195.x.x" value="">
+            <div class="hint">Veřejná IP adresa přidělená poskytovatelem internetu</div>
+            <div class="err-msg">Neplatná IP adresa</div>
+          </div>
+          <div class="form-group" id="fg-wan-mask">
+            <label>Maska podsítě</label>
+            <input type="text" id="wan-mask" placeholder="255.255.255.0" value="255.255.255.0">
+            <div class="err-msg">Neplatná maska</div>
+          </div>
+          <div class="form-group" id="fg-wan-gw">
+            <label>Výchozí brána</label>
+            <input type="text" id="wan-gw" placeholder="85.195.x.1" value="">
+            <div class="err-msg">Neplatná IP adresa</div>
+          </div>
+          <div class="form-group">
+            <label>Primární DNS</label>
+            <input type="text" id="wan-dns1" placeholder="8.8.8.8" value="8.8.8.8">
+          </div>
+          <div class="form-group">
+            <label>Sekundární DNS</label>
+            <input type="text" id="wan-dns2" placeholder="8.8.4.4" value="8.8.4.4">
+          </div>
+        </div>
+      </div>
+
+      <!-- PPPoE -->
+      <div id="wan-pppoe-section" style="display:none">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>PPPoE Uživatelské jméno</label>
+            <input type="text" id="pppoe-user" placeholder="uzivatel@isp.cz" value="">
+          </div>
+          <div class="form-group">
+            <label>PPPoE Heslo</label>
+            <input type="password" id="pppoe-pass" placeholder="••••••••" value="">
+          </div>
+          <div class="form-group">
+            <label>Název služby (volitelné)</label>
+            <input type="text" id="pppoe-service" placeholder="internet" value="">
+          </div>
+          <div class="form-group">
+            <label>MTU</label>
+            <input type="text" id="pppoe-mtu" placeholder="1492" value="1492">
+            <div class="hint">Maximální velikost paketu. PPPoE standard: 1492 (Ethernet: 1500)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveWAN()">Uložit WAN konfiguraci</button>
+        <button class="btn btn-ghost" onclick="testWAN()">Testovat připojení</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAN PAGE -->
+<div class="page" id="page-lan">
+  <div class="page-title">LAN / DHCP</div>
+  <div class="page-subtitle">Konfigurace lokální sítě a dynamického přidělování adres</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">LAN rozhraní</div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group" id="fg-lan-ip">
+          <label>IP adresa routeru (brána)</label>
+          <input type="text" id="lan-ip" placeholder="192.168.1.1" value="192.168.1.1">
+          <div class="hint">Tato adresa slouží jako výchozí brána pro všechna zařízení v LAN</div>
+          <div class="err-msg">Neplatná IP adresa</div>
+        </div>
+        <div class="form-group">
+          <label>Maska podsítě</label>
+          <select id="lan-mask">
+            <option value="255.255.255.0">/24 — 255.255.255.0 (254 hostů)</option>
+            <option value="255.255.0.0">/16 — 255.255.0.0 (65534 hostů)</option>
+            <option value="255.255.255.128">/25 — 255.255.255.128 (126 hostů)</option>
+            <option value="255.255.255.192">/26 — 255.255.255.192 (62 hostů)</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveLAN()">Uložit LAN konfiguraci</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">DHCP Server <span style="font-size:0.75rem;color:var(--muted);font-weight:400">— automaticky přiděluje IP adresy zařízením v síti</span></div>
+      <label class="toggle">
+        <input type="checkbox" id="dhcp-enabled" onchange="dhcpToggle()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="card-body" id="dhcp-config">
+      <div class="form-grid-3">
+        <div class="form-group" id="fg-dhcp-start">
+          <label>Začátek rozsahu</label>
+          <input type="text" id="dhcp-start" placeholder="192.168.1.100" value="192.168.1.100">
+          <div class="err-msg">Neplatná IP adresa</div>
+        </div>
+        <div class="form-group" id="fg-dhcp-end">
+          <label>Konec rozsahu</label>
+          <input type="text" id="dhcp-end" placeholder="192.168.1.200" value="192.168.1.200">
+          <div class="err-msg">Neplatná IP adresa</div>
+        </div>
+        <div class="form-group">
+          <label>Čas zapůjčení (hod)</label>
+          <input type="number" id="dhcp-lease" value="24" min="1" max="168">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveDHCP()">Uložit DHCP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DHCP leases table -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Aktivní zapůjčení DHCP</div><button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 12px" onclick="simulateLeases()">Simulovat klienty</button></div>
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>MAC adresa</th><th>IP adresa</th><th>Hostname</th><th>Zbývá</th><th>Stav</th></tr></thead>
+        <tbody id="leases-tbody">
+          <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">DHCP server je vypnut nebo žádní klienti</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- WIFI PAGE -->
+<div class="page" id="page-wifi">
+  <div class="page-title">Wi-Fi</div>
+  <div class="page-subtitle">Konfigurace bezdrátového přístupového bodu</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">2.4 GHz / 5 GHz Přístupový bod</div>
+      <label class="toggle">
+        <input type="checkbox" id="wifi-enabled" onchange="updateDashboard()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Název sítě (SSID)</label>
+          <input type="text" id="wifi-ssid" placeholder="MojeWiFi" value="StudentNet">
+          <div class="hint">Viditelný název Wi-Fi sítě</div>
+        </div>
+        <div class="form-group">
+          <label>Heslo (WPA2)</label>
+          <input type="password" id="wifi-pass" placeholder="min. 8 znaků" value="">
+          <div class="hint">Ponechte prázdné pro otevřenou síť</div>
+        </div>
+        <div class="form-group">
+          <label>Kanál</label>
+          <select id="wifi-channel">
+            <option value="auto">Auto (doporučeno)</option>
+            <option value="1">1 (2412 MHz)</option>
+            <option value="6">6 (2437 MHz)</option>
+            <option value="11">11 (2462 MHz)</option>
+            <option value="36">36 (5180 MHz — 5GHz)</option>
+            <option value="44">44 (5220 MHz — 5GHz)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Šířka pásma</label>
+          <select id="wifi-width">
+            <option value="20">20 MHz</option>
+            <option value="40" selected>40 MHz</option>
+            <option value="80">80 MHz (5GHz)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Zabezpečení</label>
+          <select id="wifi-security">
+            <option value="wpa2">WPA2-Personal (AES)</option>
+            <option value="wpa3">WPA3-Personal</option>
+            <option value="wpa2-enterprise">WPA2-Enterprise (RADIUS)</option>
+            <option value="none">Žádné (otevřená síť)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Výkon vysílače</label>
+          <select id="wifi-power">
+            <option value="low">Nízký (10 dBm)</option>
+            <option value="medium" selected>Střední (17 dBm)</option>
+            <option value="high">Vysoký (20 dBm)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="toggle-row">
+          <div><div class="toggle-label">Skrýt SSID (Hidden network)</div><div class="toggle-desc">Síť nebude viditelná v seznamu dostupných sítí</div></div>
+          <label class="toggle"><input type="checkbox" id="wifi-hidden"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Izolace klientů</div><div class="toggle-desc">Klienti se navzájem nevidí v síti</div></div>
+          <label class="toggle"><input type="checkbox" id="wifi-isolate"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveWiFi()">Uložit Wi-Fi konfiguraci</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROUTING PAGE -->
+<div class="page" id="page-routing">
+  <div class="page-title">Statické trasy</div>
+  <div class="page-subtitle">Ruční konfigurace routovací tabulky</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Přidat statickou trasu <span style="font-size:0.75rem;color:var(--muted);font-weight:400">— ručně definuje, přes jakou bránu posílat pakety do dané sítě</span></div></div>
+    <div class="card-body">
+      <div class="form-grid-3">
+        <div class="form-group" id="fg-route-dest">
+          <label>Cílová síť</label>
+          <input type="text" id="route-dest" placeholder="10.0.0.0">
+          <div class="err-msg">Neplatná adresa</div>
+        </div>
+        <div class="form-group">
+          <label>Maska / Prefix</label>
+          <input type="text" id="route-mask" placeholder="255.255.255.0">
+        </div>
+        <div class="form-group" id="fg-route-gw">
+          <label>Brána (Next Hop)</label>
+          <input type="text" id="route-gw" placeholder="192.168.1.1">
+          <div class="err-msg">Neplatná IP adresa</div>
+        </div>
+        <div class="form-group">
+          <label>Rozhraní</label>
+          <select id="route-iface">
+            <option value="WAN">WAN</option>
+            <option value="LAN" selected>LAN</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Metrika</label>
+          <input type="number" id="route-metric" value="1" min="1" max="255">
+          <div class="hint">Priorita trasy — nižší číslo = přednost při výběru</div>
+        </div>
+        <div class="form-group">
+          <label>Popis</label>
+          <input type="text" id="route-desc" placeholder="Popis trasy (volitelné)">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addRoute()">Přidat trasu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Routovací tabulka <span style="font-size:0.75rem;color:var(--muted);font-weight:400">— pravidla pro výběr cesty paketu</span></div></div>
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Cíl</th><th>Maska</th><th>Brána</th><th>Rozhraní</th><th>Metrika</th><th>Typ</th><th>Akce</th></tr></thead>
+        <tbody id="routes-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FIREWALL PAGE -->
+<div class="page" id="page-firewall">
+  <div class="page-title">Firewall</div>
+  <div class="page-subtitle">Pravidla filtrování síťového provozu (iptables / netfilter)</div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="fwTab('filter')">Filtrování (INPUT/FORWARD)</div>
+    <div class="tab" onclick="fwTab('portfw')">Port Forwarding</div>
+  </div>
+
+  <!-- Filter rules -->
+  <div id="fw-filter-panel">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Přidat pravidlo</div></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Řetěz (Chain)</label>
+            <select id="fw-chain">
+              <option value="INPUT">INPUT — přichozí pakety přímo na router</option>
+              <option value="FORWARD">FORWARD — pakety procházející routerem (LAN ↔ WAN)</option>
+              <option value="OUTPUT">OUTPUT — odchozí pakety ze samotného routeru</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Akce</label>
+            <select id="fw-action">
+              <option value="ACCEPT">ACCEPT — povolit</option>
+              <option value="DROP">DROP — zahodit (bez odpovědi)</option>
+              <option value="REJECT">REJECT — zamítnout (s odpovědí)</option>
+              <option value="LOG">LOG — zaznamenat</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Protokol</label>
+            <select id="fw-proto">
+              <option value="any">Libovolný</option>
+              <option value="tcp">TCP</option>
+              <option value="udp">UDP</option>
+              <option value="icmp">ICMP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zdrojová IP</label>
+            <input type="text" id="fw-src" placeholder="0.0.0.0/0 nebo konkrétní IP">
+          </div>
+          <div class="form-group">
+            <label>Cílová IP</label>
+            <input type="text" id="fw-dst" placeholder="0.0.0.0/0 nebo konkrétní IP">
+          </div>
+          <div class="form-group">
+            <label>Port (cílový)</label>
+            <input type="text" id="fw-port" placeholder="80, 443, 22, 8080-8090">
+          </div>
+          <div class="form-group">
+            <label>Popis pravidla</label>
+            <input type="text" id="fw-comment" placeholder="Např. Blokovat SSH z internetu">
+          </div>
+          <div class="form-group">
+            <label>Rozhraní (volitelné)</label>
+            <select id="fw-iface">
+              <option value="">Libovolné</option>
+              <option value="eth0">eth0 (WAN)</option>
+              <option value="eth1">eth1 (LAN)</option>
+              <option value="wlan0">wlan0 (Wi-Fi)</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addFWRule()">Přidat pravidlo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Pravidla firewallu</div><span id="fw-badge" class="badge badge-blue">0 pravidel</span></div>
+      <div class="card-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Chain</th><th>Akce</th><th>Proto</th><th>Src</th><th>Dst</th><th>Port</th><th>Popis</th><th>Akce</th></tr></thead>
+          <tbody id="fw-rules-tbody">
+            <tr><td colspan="9" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Port Forwarding -->
+  <div id="fw-portfw-panel" style="display:none">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Přidat Port Forwarding <span style="font-size:0.75rem;color:var(--muted);font-weight:400">— zpřístupní interní zařízení z internetu</span></div></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Protokol</label>
+            <select id="pf-proto">
+              <option value="tcp">TCP</option>
+              <option value="udp">UDP</option>
+              <option value="both">TCP+UDP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Externí port (WAN)</label>
+            <input type="text" id="pf-ext-port" placeholder="8080">
+          </div>
+          <div class="form-group">
+            <label>Interní IP (LAN host)</label>
+            <input type="text" id="pf-int-ip" placeholder="192.168.1.50">
+          </div>
+          <div class="form-group">
+            <label>Interní port</label>
+            <input type="text" id="pf-int-port" placeholder="80">
+          </div>
+          <div class="form-group">
+            <label>Popis</label>
+            <input type="text" id="pf-desc" placeholder="Webserver">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addPortForward()">Přidat pravidlo</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Port Forwarding pravidla</div></div>
+      <div class="card-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Proto</th><th>Ext. port</th><th>Int. IP</th><th>Int. port</th><th>Popis</th><th>Akce</th></tr></thead>
+          <tbody id="pf-tbody">
+            <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAT PAGE -->
+<div class="page" id="page-nat">
+  <div class="page-title">NAT (Network Address Translation)</div>
+  <div class="page-subtitle">Překlad síťových adres — sdílení internetového připojení</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Masquerade / Source NAT</div></div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Masquerade (SNAT) — sdílení internetu</div>
+          <div class="toggle-desc">Všechny odchozí pakety z LAN sítě budou mít zdrojovou IP adresu WAN rozhraní. Nutné pro fungování internetu na LAN zařízeních.</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="nat-masq" checked onchange="updateLog('NAT Masquerade: ' + (this.checked?'zapnuto':'vypnuto'))">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">NAT Hairpinning (NAT Loopback)</div>
+          <div class="toggle-desc">Umožňuje přístup k interním serverům přes jejich veřejnou IP adresu i z vnitřní sítě.</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="nat-hairpin" onchange="updateLog('NAT Hairpinning: ' + (this.checked?'zapnuto':'vypnuto'))">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Connection Tracking</div>
+          <div class="toggle-desc">Sledování stavů spojení (ESTABLISHED, RELATED, NEW, INVALID).</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="nat-conntrack" checked onchange="updateLog('Connection Tracking: ' + (this.checked?'zapnuto':'vypnuto'))">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="toast('NAT konfigurace uložena','ok')">Uložit NAT konfiguraci</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Přehled NAT tabulky (simulace)</div></div>
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Typ</th><th>Protokol</th><th>Orig. src</th><th>Orig. dst</th><th>Přeloženo na</th><th>Stav</th></tr></thead>
+        <tbody>
+          <tr><td>MASQ</td><td>TCP</td><td>192.168.1.100:54322</td><td>8.8.8.8:443</td><td>WAN_IP:54322</td><td><span class="badge badge-green">ESTABLISHED</span></td></tr>
+          <tr><td>MASQ</td><td>UDP</td><td>192.168.1.102:5353</td><td>1.1.1.1:53</td><td>WAN_IP:5353</td><td><span class="badge badge-yellow">NEW</span></td></tr>
+          <tr><td>MASQ</td><td>TCP</td><td>192.168.1.101:44100</td><td>142.250.x.x:80</td><td>WAN_IP:44100</td><td><span class="badge badge-blue">RELATED</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SYSTEM PAGE -->
+<div class="page" id="page-system">
+  <div class="page-title">Systém</div>
+  <div class="page-subtitle">Základní nastavení routeru a správa</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Identifikace routeru</div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Název zařízení (Hostname)</label>
+          <input type="text" id="sys-hostname" value="router-edu" placeholder="muj-router">
+        </div>
+        <div class="form-group">
+          <label>Doménové jméno</label>
+          <input type="text" id="sys-domain" value="local" placeholder="local">
+        </div>
+        <div class="form-group">
+          <label>Správcovské heslo</label>
+          <input type="password" id="sys-pass" placeholder="Nové heslo" value="">
+        </div>
+        <div class="form-group">
+          <label>Potvrzení hesla</label>
+          <input type="password" id="sys-pass2" placeholder="Opakujte heslo" value="">
+        </div>
+        <div class="form-group">
+          <label>Časové pásmo</label>
+          <select id="sys-tz">
+            <option value="Europe/Prague" selected>Europe/Prague (CET/CEST)</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>NTP Server</label>
+          <input type="text" id="sys-ntp" value="pool.ntp.org" placeholder="pool.ntp.org">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveSystem()">Uložit nastavení</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Správa systému</div></div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div><div class="toggle-label">SSH přístup (port 22)</div><div class="toggle-desc">Vzdálená správa přes Secure Shell</div></div>
+        <label class="toggle"><input type="checkbox" id="sys-ssh" checked onchange="updateLog('SSH: ' + (this.checked?'zapnuto':'vypnuto'))"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Webové rozhraní HTTPS</div><div class="toggle-desc">Přístup k admin panelu přes šifrované připojení</div></div>
+        <label class="toggle"><input type="checkbox" id="sys-https" checked onchange="updateLog('HTTPS admin: ' + (this.checked?'zapnuto':'vypnuto'))"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Vzdálená správa z WAN</div><div class="toggle-desc">Povolí přístup k admin rozhraní z internetu (bezpečnostní riziko!)</div></div>
+        <label class="toggle"><input type="checkbox" id="sys-remote" onchange="updateLog('Vzdálená správa z WAN: ' + (this.checked?'⚠️ zapnuto':'vypnuto'))"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="btn-row" style="margin-top:24px">
+        <button class="btn btn-danger" onclick="confirmReset()">Tovární reset</button>
+        <button class="btn btn-ghost" onclick="simulateReboot()">Restart routeru</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOG PAGE -->
+<div class="page" id="page-log">
+  <div class="page-title">Systémový log</div>
+  <div class="page-subtitle">Záznamy o událostech a konfiguračních změnách</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Log záznamy</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 12px" onclick="clearLog()">Smazat log</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="log-box" id="log-box"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- LEARN MODAL -->
+<div class="modal-overlay" id="learn-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon" id="modal-icon">📚</div>
+      <div>
+        <div class="modal-title" id="modal-title">Co jsi se právě naučil</div>
+        <div class="modal-subtitle" id="modal-subtitle">Shrnutí klíčových konceptů</div>
+      </div>
+    </div>
+    <div class="learn-items" id="modal-items"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal()">Rozumím ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip-popup" id="tooltip" style="display:none"></div>
+
+<div id="toast-container"></div>
+
+<script>
+// ===================== STATE =====================
+const state = {
+  wan: { type: 'dhcp', ip: '', mask: '255.255.255.0', gw: '', dns1: '8.8.8.8', dns2: '8.8.4.4', pppoeUser: '', pppoePass: '', saved: false },
+  lan: { ip: '192.168.1.1', mask: '255.255.255.0', saved: false },
+  dhcp: { enabled: false, start: '192.168.1.100', end: '192.168.1.200', lease: 24 },
+  wifi: { enabled: false, ssid: 'StudentNet', pass: '', channel: 'auto', security: 'wpa2' },
+  routes: [],
+  fwRules: [],
+  portForwards: [],
+  log: [],
+  uptime: 0
+};
+
+// ===================== UTILS =====================
+function isValidIP(ip) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(o => parseInt(o) >= 0 && parseInt(o) <= 255);
+}
+
+function toast(msg, type='ok') {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'err' ? ' err' : type === 'warn' ? ' warn' : '');
+  const icon = type === 'ok' ? '✓' : type === 'err' ? '✗' : '⚠';
+  el.innerHTML = `<strong>${icon}</strong> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function updateLog(msg, type='info') {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  state.log.unshift({ ts, msg, type });
+  renderLog();
+}
+
+function renderLog() {
+  const box = document.getElementById('log-box');
+  if (!box) return;
+  box.innerHTML = state.log.slice(0,80).map(e =>
+    `<div class="log-line ${e.type}"><span style="color:var(--muted)">[${e.ts}]</span> ${e.msg}</div>`
+  ).join('') || '<div class="log-line">Log je prázdný.</div>';
+}
+
+function clearLog() { state.log = []; renderLog(); toast('Log smazán', 'ok'); }
+
+function setError(groupId, hasError) {
+  const el = document.getElementById(groupId);
+  if (!el) return;
+  el.classList.toggle('has-error', hasError);
+  el.querySelector('input')?.classList.toggle('error', hasError);
+}
+
+// ===================== NAVIGATION =====================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
+  renderLog();
+}
+
+// ===================== UPTIME / CLOCK =====================
+setInterval(() => {
+  state.uptime++;
+  const h = Math.floor(state.uptime/3600).toString().padStart(2,'0');
+  const m = Math.floor((state.uptime%3600)/60).toString().padStart(2,'0');
+  const s = (state.uptime%60).toString().padStart(2,'0');
+  document.getElementById('uptime-display').innerHTML = `<span class="status-dot dot-yellow"></span>Uptime: ${h}:${m}:${s}`;
+  const now = new Date();
+  document.getElementById('clock-display').textContent = now.toTimeString().slice(0,8);
+}, 1000);
+
+// ===================== WAN =====================
+function wanTypeChange() {
+  const t = document.getElementById('wan-type').value;
+  document.getElementById('wan-dhcp-section').style.display = t === 'dhcp' ? '' : 'none';
+  document.getElementById('wan-static-section').style.display = t === 'static' ? '' : 'none';
+  document.getElementById('wan-pppoe-section').style.display = t === 'pppoe' ? '' : 'none';
+}
+
+function saveWAN() {
+  const type = document.getElementById('wan-type').value;
+  let valid = true;
+
+  if (type === 'static') {
+    const ip = document.getElementById('wan-ip').value;
+    const gw = document.getElementById('wan-gw').value;
+    if (!isValidIP(ip)) { setError('fg-wan-ip', true); valid = false; } else setError('fg-wan-ip', false);
+    if (!isValidIP(gw)) { setError('fg-wan-gw', true); valid = false; } else setError('fg-wan-gw', false);
+    if (!valid) { toast('Opravte chyby ve formuláři', 'err'); return; }
+    state.wan = { ...state.wan, type, ip, gw, mask: document.getElementById('wan-mask').value, saved: true };
+  } else if (type === 'pppoe') {
+    const user = document.getElementById('pppoe-user').value;
+    if (!user) { toast('Zadejte PPPoE uživatelské jméno', 'err'); return; }
+    state.wan = { ...state.wan, type, saved: true };
+  } else {
+    state.wan = { ...state.wan, type: 'dhcp', ip: '10.0.0.' + Math.floor(Math.random()*200+10), saved: true };
+  }
+
+  toast('WAN konfigurace uložena');
+  updateLog(`WAN uloženo — typ: ${type.toUpperCase()}`, 'ok');
+  updateDashboard();
+}
+
+function testWAN() {
+  updateLog('Testování WAN připojení…', 'info');
+  setTimeout(() => {
+    if (state.wan.saved) {
+      toast('Ping 8.8.8.8 — OK (latence 12ms)', 'ok');
+      updateLog('WAN test: OK — ping 8.8.8.8 12ms', 'ok');
+    } else {
+      toast('WAN není nakonfigurováno', 'err');
+      updateLog('WAN test: CHYBA — není uložena konfigurace', 'err');
+    }
+  }, 800);
+}
+
+// ===================== LAN =====================
+function saveLAN() {
+  const ip = document.getElementById('lan-ip').value;
+  if (!isValidIP(ip)) { setError('fg-lan-ip', true); toast('Neplatná IP adresa', 'err'); return; }
+  setError('fg-lan-ip', false);
+  state.lan = { ip, mask: document.getElementById('lan-mask').value, saved: true };
+  toast('LAN konfigurace uložena');
+  updateLog(`LAN IP uložena: ${ip}`, 'ok');
+  updateDashboard();
+  initDefaultRoutes();
+}
+
+function dhcpToggle() {
+  state.dhcp.enabled = document.getElementById('dhcp-enabled').checked;
+  updateLog('DHCP server: ' + (state.dhcp.enabled ? 'zapnut' : 'vypnut'), state.dhcp.enabled ? 'ok' : 'info');
+  updateDashboard();
+}
+
+function saveDHCP() {
+  const start = document.getElementById('dhcp-start').value;
+  const end = document.getElementById('dhcp-end').value;
+  if (!isValidIP(start)) { setError('fg-dhcp-start', true); toast('Neplatná počáteční IP', 'err'); return; }
+  if (!isValidIP(end)) { setError('fg-dhcp-end', true); toast('Neplatná koncová IP', 'err'); return; }
+  setError('fg-dhcp-start', false); setError('fg-dhcp-end', false);
+  state.dhcp = { ...state.dhcp, start, end, lease: parseInt(document.getElementById('dhcp-lease').value) };
+  toast('DHCP konfigurace uložena');
+  updateLog(`DHCP rozsah: ${start} – ${end}`, 'ok');
+  updateDashboard();
+}
+
+const mockDevices = [
+  { mac: 'AA:BB:CC:11:22:33', host: 'notebook-jan', offset: 100 },
+  { mac: 'DE:AD:BE:EF:00:01', host: 'telefon-marie', offset: 101 },
+  { mac: '00:11:22:33:44:55', host: 'pc-ucebna', offset: 102 },
+  { mac: 'FF:EE:DD:CC:BB:AA', host: 'tablet-3', offset: 103 },
+];
+
+function simulateLeases() {
+  if (!state.dhcp.enabled) { toast('Nejprve zapněte DHCP server', 'warn'); return; }
+  const base = state.lan.ip.split('.').slice(0,3).join('.');
+  const tbody = document.getElementById('leases-tbody');
+  tbody.innerHTML = mockDevices.map((d, i) => `
+    <tr>
+      <td>${d.mac}</td>
+      <td>${base}.${d.offset}</td>
+      <td>${d.host}</td>
+      <td>${Math.floor(Math.random()*20+4)}h ${Math.floor(Math.random()*60)}m</td>
+      <td><span class="badge badge-green">Aktivní</span></td>
+    </tr>
+  `).join('');
+  toast('Simulace DHCP klientů přidána');
+}
+
+// ===================== WIFI =====================
+function saveWiFi() {
+  state.wifi = {
+    enabled: document.getElementById('wifi-enabled').checked,
+    ssid: document.getElementById('wifi-ssid').value || 'RouterSim',
+    pass: document.getElementById('wifi-pass').value,
+    channel: document.getElementById('wifi-channel').value,
+    security: document.getElementById('wifi-security').value,
+  };
+  if (state.wifi.pass && state.wifi.pass.length < 8 && state.wifi.security !== 'none') {
+    toast('Heslo musí mít alespoň 8 znaků', 'err'); return;
+  }
+  toast('Wi-Fi konfigurace uložena');
+  updateLog(`Wi-Fi uloženo — SSID: ${state.wifi.ssid}, zabezpečení: ${state.wifi.security}`, 'ok');
+  updateDashboard();
+}
+
+// ===================== ROUTING =====================
+function initDefaultRoutes() {
+  if (state.routes.length === 0) {
+    state.routes = [
+      { dest: '0.0.0.0', mask: '0.0.0.0', gw: state.wan.gw || '10.0.0.1', iface: 'WAN', metric: 1, type: 'default', desc: 'Výchozí brána' },
+      { dest: state.lan.ip.split('.').slice(0,3).join('.')+'.0', mask: state.lan.mask, gw: state.lan.ip, iface: 'LAN', metric: 1, type: 'connected', desc: 'LAN síť' },
+    ];
+    renderRoutes();
+  }
+}
+
+function addRoute() {
+  const dest = document.getElementById('route-dest').value;
+  const mask = document.getElementById('route-mask').value;
+  const gw = document.getElementById('route-gw').value;
+
+  let valid = true;
+  if (!isValidIP(dest)) { setError('fg-route-dest', true); valid = false; } else setError('fg-route-dest', false);
+  if (!isValidIP(gw)) { setError('fg-route-gw', true); valid = false; } else setError('fg-route-gw', false);
+  if (!valid) { toast('Zkontrolujte zadané adresy', 'err'); return; }
+
+  state.routes.push({
+    dest, mask: mask || '255.255.255.0', gw,
+    iface: document.getElementById('route-iface').value,
+    metric: parseInt(document.getElementById('route-metric').value),
+    type: 'static',
+    desc: document.getElementById('route-desc').value,
+  });
+  renderRoutes();
+  toast('Statická trasa přidána');
+  updateLog(`Trasa přidána: ${dest} via ${gw}`, 'ok');
+  ['route-dest','route-mask','route-gw','route-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('route-metric').value = 1;
+}
+
+function deleteRoute(i) {
+  if (state.routes[i].type !== 'static') { toast('Výchozí trasy nelze smazat', 'warn'); return; }
+  state.routes.splice(i, 1);
+  renderRoutes();
+  toast('Trasa odstraněna');
+}
+
+function renderRoutes() {
+  const tbody = document.getElementById('routes-tbody');
+  if (!state.routes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Žádné trasy (uložte LAN konfiguraci)</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.routes.map((r, i) => `
+    <tr>
+      <td>${r.dest}</td><td>${r.mask}</td><td>${r.gw}</td>
+      <td>${r.iface}</td><td>${r.metric}</td>
+      <td><span class="badge ${r.type==='static'?'badge-blue':r.type==='default'?'badge-yellow':'badge-green'}">${r.type}</span></td>
+      <td>${r.type==='static'?`<button class="btn btn-danger" style="padding:2px 10px;font-size:0.75rem" onclick="deleteRoute(${i})">Smazat</button>`:'-'}</td>
+    </tr>
+  `).join('');
+}
+
+// ===================== FIREWALL =====================
+function fwTab(tab) {
+  document.querySelectorAll('.tabs .tab').forEach((t,i) => t.classList.toggle('active', i === (tab==='filter'?0:1)));
+  document.getElementById('fw-filter-panel').style.display = tab === 'filter' ? '' : 'none';
+  document.getElementById('fw-portfw-panel').style.display = tab === 'portfw' ? '' : 'none';
+}
+
+function addFWRule() {
+  const rule = {
+    chain: document.getElementById('fw-chain').value,
+    action: document.getElementById('fw-action').value,
+    proto: document.getElementById('fw-proto').value,
+    src: document.getElementById('fw-src').value || '0.0.0.0/0',
+    dst: document.getElementById('fw-dst').value || '0.0.0.0/0',
+    port: document.getElementById('fw-port').value || '*',
+    comment: document.getElementById('fw-comment').value || '—',
+    iface: document.getElementById('fw-iface').value,
+  };
+  state.fwRules.push(rule);
+  renderFWRules();
+  toast('Pravidlo firewallu přidáno');
+  updateLog(`FW pravidlo: ${rule.chain} ${rule.action} ${rule.proto} src:${rule.src} port:${rule.port}`, 'ok');
+  ['fw-src','fw-dst','fw-port','fw-comment'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deleteFWRule(i) {
+  state.fwRules.splice(i, 1);
+  renderFWRules();
+  toast('Pravidlo odstraněno');
+}
+
+function renderFWRules() {
+  const actionColors = { ACCEPT: 'badge-green', DROP: 'badge-red', REJECT: 'badge-yellow', LOG: 'badge-blue' };
+  const tbody = document.getElementById('fw-rules-tbody');
+  const badge = document.getElementById('fw-badge');
+  badge.textContent = state.fwRules.length + ' pravidel';
+
+  if (!state.fwRules.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla</td></tr>';
+  } else {
+    tbody.innerHTML = state.fwRules.map((r, i) => `
+      <tr>
+        <td>${i+1}</td><td>${r.chain}</td>
+        <td><span class="badge ${actionColors[r.action]||'badge-blue'}">${r.action}</span></td>
+        <td>${r.proto}</td><td>${r.src}</td><td>${r.dst}</td><td>${r.port}</td>
+        <td style="color:var(--muted);font-size:0.78rem">${r.comment}</td>
+        <td><button class="btn btn-danger" style="padding:2px 10px;font-size:0.75rem" onclick="deleteFWRule(${i})">✕</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Update dashboard fw summary
+  const summTbody = document.getElementById('fw-summary-tbody');
+  const fwCountBadge = document.getElementById('fw-count-badge');
+  fwCountBadge.textContent = state.fwRules.length + ' pravidel';
+  if (!state.fwRules.length) {
+    summTbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla firewallu</td></tr>';
+  } else {
+    summTbody.innerHTML = state.fwRules.slice(0,5).map((r, i) => `
+      <tr><td>${i+1}</td><td><span class="badge ${actionColors[r.action]||'badge-blue'}">${r.action}</span></td>
+      <td>${r.src}</td><td>${r.dst}</td><td>${r.port}</td><td>${r.proto}</td></tr>
+    `).join('');
+  }
+}
+
+function addPortForward() {
+  const extPort = document.getElementById('pf-ext-port').value;
+  const intIp = document.getElementById('pf-int-ip').value;
+  const intPort = document.getElementById('pf-int-port').value;
+  if (!extPort || !intIp || !intPort) { toast('Vyplňte všechna pole', 'err'); return; }
+  if (!isValidIP(intIp)) { toast('Neplatná interní IP adresa', 'err'); return; }
+  state.portForwards.push({
+    proto: document.getElementById('pf-proto').value,
+    extPort, intIp, intPort,
+    desc: document.getElementById('pf-desc').value || '—'
+  });
+  renderPF();
+  toast('Port forwarding přidán');
+  updateLog(`Port forwarding: WAN:${extPort} → ${intIp}:${intPort}`, 'ok');
+  ['pf-ext-port','pf-int-ip','pf-int-port','pf-desc'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deletePF(i) { state.portForwards.splice(i, 1); renderPF(); }
+
+function renderPF() {
+  const tbody = document.getElementById('pf-tbody');
+  if (!state.portForwards.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Žádná pravidla</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.portForwards.map((r, i) => `
+    <tr><td>${i+1}</td><td>${r.proto}</td><td>${r.extPort}</td><td>${r.intIp}</td><td>${r.intPort}</td>
+    <td style="color:var(--muted)">${r.desc}</td>
+    <td><button class="btn btn-danger" style="padding:2px 10px;font-size:0.75rem" onclick="deletePF(${i})">✕</button></td></tr>
+  `).join('');
+}
+
+// ===================== SYSTEM =====================
+function saveSystem() {
+  const p1 = document.getElementById('sys-pass').value;
+  const p2 = document.getElementById('sys-pass2').value;
+  if (p1 && p1 !== p2) { toast('Hesla se neshodují', 'err'); return; }
+  toast('Systémová konfigurace uložena');
+  updateLog('Systémová nastavení uložena', 'ok');
+}
+
+function confirmReset() {
+  if (confirm('Opravdu chcete provést tovární reset? Všechna nastavení budou ztracena.')) {
+    toast('Tovární reset proběhl — router simuluje reboot…', 'warn');
+    updateLog('⚠️ TOVÁRNÍ RESET proveden', 'err');
+    setTimeout(() => location.reload(), 1500);
+  }
+}
+
+function simulateReboot() {
+  toast('Router se restartuje… (simulace)', 'warn');
+  updateLog('Restart routeru iniciován', 'info');
+  state.uptime = 0;
+}
+
+// ===================== DASHBOARD UPDATE =====================
+function updateDashboard() {
+  // WAN
+  const wanIpEl = document.getElementById('stat-wan-ip');
+  const wanModeEl = document.getElementById('stat-wan-mode');
+  if (state.wan.saved) {
+    wanIpEl.textContent = state.wan.type === 'dhcp' ? (state.wan.ip || 'DHCP auto') : state.wan.type === 'pppoe' ? 'PPPoE' : state.wan.ip;
+    wanModeEl.textContent = state.wan.type.toUpperCase();
+  }
+
+  // LAN
+  document.getElementById('stat-lan-ip').textContent = state.lan.ip;
+
+  // DHCP
+  const dhcpEl = document.getElementById('stat-dhcp-range');
+  const dhcpSt = document.getElementById('stat-dhcp-status');
+  dhcpEl.textContent = state.dhcp.enabled ? state.dhcp.start.split('.').pop() + '–' + state.dhcp.end.split('.').pop() : '—';
+  dhcpSt.textContent = state.dhcp.enabled ? 'Zapnuto' : 'Vypnuto';
+
+  // WiFi
+  const wifiEl = document.getElementById('stat-wifi-ssid');
+  const wifiSt = document.getElementById('stat-wifi-status');
+  const wifiEnabled = document.getElementById('wifi-enabled').checked;
+  wifiEl.textContent = wifiEnabled ? (document.getElementById('wifi-ssid').value || 'StudentNet') : '—';
+  wifiSt.textContent = wifiEnabled ? 'Zapnuto' : 'Vypnuto';
+
+  // Diagram
+  const wanActive = state.wan.saved;
+  const lanActive = state.lan.saved;
+  const wifiActive = document.getElementById('wifi-enabled').checked;
+
+  document.getElementById('diag-internet').classList.toggle('active', wanActive);
+  document.getElementById('diag-line-wan').classList.toggle('active', wanActive);
+  document.getElementById('diag-lan').classList.toggle('active', lanActive);
+  document.getElementById('diag-line-lan').classList.toggle('active', lanActive);
+  document.getElementById('diag-wifi').classList.toggle('active', wifiActive);
+  document.getElementById('diag-line-wifi').classList.toggle('active', wifiActive);
+  document.getElementById('diag-wifi-label').textContent = wifiActive ? (document.getElementById('wifi-ssid').value || 'Wi-Fi') : 'Wi-Fi (off)';
+}
+
+// ===================== INIT =====================
+function init() {
+  wanTypeChange();
+  initDefaultRoutes();
+  updateDashboard();
+  updateLog('Router nastartoval — výukový simulátor spuštěn', 'ok');
+  updateLog('Firmware verze 7.3.2 — připraveno ke konfiguraci', 'info');
+}
+init();
+</script>
+</body>
+</html>
