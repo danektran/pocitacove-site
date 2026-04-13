@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kolo štěstí – Počítačové sítě</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.15);
+    --text: #1A1916;
+    --text-muted: #706E68;
+    --text-faint: #A09E98;
+    --accent: #2D2A8F;
+    --accent-light: #EEEDFE;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141412;
+      --surface: #1E1D1B;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.15);
+      --text: #F0EDE6;
+      --text-muted: #9E9C96;
+      --text-faint: #5A5854;
+      --accent: #8B88E8;
+      --accent-light: #26215C;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.3rem;
+  }
+
+  header p {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 610px 1fr;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1100px;
+    align-items: start;
+  }
+
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* Wheel column */
+  .wheel-col { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+
+  .wheel-container {
+    position: relative;
+    width: 556px;
+    height: 556px;
+  }
+
+  #pointer {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 26px solid var(--text);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+
+  #wheel-canvas {
+    display: block;
+    border-radius: 50%;
+    box-shadow: var(--shadow), 0 0 0 1px var(--border);
+  }
+
+  #spin-btn {
+    padding: 11px 44px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  #spin-btn:hover { opacity: 0.85; }
+  #spin-btn:active { transform: scale(0.97); }
+  #spin-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  #cooldown-info {
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+    min-height: 18px;
+    line-height: 1.5;
+  }
+
+  /* Right column */
+  .info-col { display: flex; flex-direction: column; gap: 1rem; }
+
+  .result-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .result-card .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+
+  .result-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .result-text.placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  /* Topics list */
+  .topics-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .topics-header {
+    padding: 0.75rem 1.25rem;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .topic-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0.7rem 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.1s;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .topic-row:last-child { border-bottom: none; }
+  .topic-row.recent { background: var(--accent-light); }
+  .topic-row.cooldown { opacity: 0.4; }
+
+  .topic-num {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+
+  .topic-name { color: var(--text-muted); flex: 1; }
+  .topic-name strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 1px; }
+
+  .topic-badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 3px;
+  }
+
+  .badge-last {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .badge-cd {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-faint);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .badge-cd { background: rgba(255,255,255,0.06); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ústní zkouška</h1>
+  <p>Losování okruhů – Počítačové sítě</p>
+</header>
+
+<div class="layout">
+  <div class="wheel-col">
+    <div class="wheel-container">
+      <div id="pointer"></div>
+      <canvas id="wheel-canvas" width="556" height="556"></canvas>
+    </div>
+    <button id="spin-btn">Točit kolem</button>
+    <div id="cooldown-info"></div>
+  </div>
+
+  <div class="info-col">
+    <div class="result-card">
+      <div class="label">Vylosovaný okruh</div>
+      <div id="result-num" class="result-num" style="display:none;"></div>
+      <div id="result-text" class="result-text placeholder">Stiskni tlačítko a vylos okruh…</div>
+    </div>
+
+    <div class="topics-card">
+      <div class="topics-header">Přehled okruhů</div>
+      <div id="topics-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const topics = [
+  { num: 1, short: "Počítačové sítě", full: "Počítačové sítě, důvody zavádění, topologie, rozdělení podle úlohy prvků v síti" },
+  { num: 2, short: "Síťové služby", full: "Služby v sítích, spolehlivá, nespolehlivá, spojovaná, nespojovaná, přístupové metody, Token ring, Half/full duplex, packet, TCP, UDP" },
+  { num: 3, short: "Síťový model", full: "Síťový model, vrstvy, protokol, komunikace mezi vrstvami, modely síťové architektury" },
+  { num: 4, short: "Ethernet", full: "Ethernet, kabeláž, standardy" },
+  { num: 5, short: "Aktivní prvky", full: "Aktivní síťové prvky, hub, transceiver, switch, Bridge, Router, gateway, AP, firewall" },
+  { num: 6, short: "Síťové protokoly", full: "Síťové protokoly IPX/SPX, TCP/IP a jeho vrstvy" },
+  { num: 7, short: "Adresování", full: "Adresování, MAC adresa, IP adresa v4 a její struktura, třídy, maska podsítě, CIDR, VLSM, IPv6, NAT, DHCP, ARP, RARP, síťový port" },
+  { num: 8, short: "Bezdrátové sítě", full: "Bezdrátové sítě WPAN, IrDA, BlueTooth, WLAN, ad hoc sítě" },
+  { num: 9, short: "Internet", full: "Internet – základní služby, WWW, systém doménových jmen, protokoly, POP3, IMAP, FTP, SSH" }
+];
+
+const COOLDOWN = 2;
+
+const lightColors = [
+  ["#EEEDFE","#534AB7"],["#E1F5EE","#0F6E56"],["#FAECE7","#993C1D"],
+  ["#FBEAF0","#993556"],["#E6F1FB","#185FA5"],["#EAF3DE","#3B6D11"],
+  ["#FAEEDA","#854F0B"],["#FCEBEB","#A32D2D"],["#F1EFE8","#5F5E5A"],
+];
+const darkColors = [
+  ["#26215C","#CECBF6"],["#04342C","#9FE1CB"],["#4A1B0C","#F5C4B3"],
+  ["#4B1528","#F4C0D1"],["#042C53","#B5D4F4"],["#173404","#C0DD97"],
+  ["#412402","#FAC775"],["#501313","#F7C1C1"],["#2C2C2A","#D3D1C7"],
+];
+
+let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  isDark = e.matches; drawWheel(currentAngle); renderTopics();
+});
+
+const canvas = document.getElementById('wheel-canvas');
+const ctx = canvas.getContext('2d');
+const btn = document.getElementById('spin-btn');
+const resultNum = document.getElementById('result-num');
+const resultText = document.getElementById('result-text');
+const cooldownInfo = document.getElementById('cooldown-info');
+const topicsList = document.getElementById('topics-list');
+
+const n = topics.length;
+const slice = (2 * Math.PI) / n;
+let currentAngle = 0;
+let spinning = false;
+let recentDraw = [];
+let lastDrawn = null;
+
+function getCols(i) {
+  return isDark ? darkColors[i % darkColors.length] : lightColors[i % lightColors.length];
+}
+
+function drawWheel(angle) {
+  const cx = 278, cy = 278, r = 265;
+  ctx.clearRect(0, 0, 556, 556);
+  for (let i = 0; i < n; i++) {
+    const startA = angle + i * slice - Math.PI / 2;
+    const endA = startA + slice;
+    const [bg, fg] = getCols(i);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startA, endA);
+    ctx.closePath();
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startA + slice / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = fg;
+    ctx.font = "500 15px 'DM Sans', sans-serif";
+    ctx.fillText(topics[i].short, r - 10, 4, r - 22);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = isDark ? "#1E1D1B" : "#FFFFFF";
+  ctx.fill();
+  ctx.strokeStyle = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function renderTopics() {
+  topicsList.innerHTML = topics.map((t, i) => {
+    const isLast = lastDrawn === i;
+    const isCd = recentDraw.includes(i) && !isLast;
+    const [bg, fg] = getCols(i);
+    const cls = isLast ? "topic-row recent" : isCd ? "topic-row cooldown" : "topic-row";
+    const badge = isLast
+      ? `<span class="topic-badge badge-last">Právě vylosován</span>`
+      : isCd
+      ? `<span class="topic-badge badge-cd">Pauza</span>`
+      : "";
+    return `<div class="${cls}">
+      <span class="topic-num" style="background:${bg};color:${fg};">${t.num}</span>
+      <span class="topic-name"><strong>${t.short}</strong>${t.full.replace(t.short+", ","").replace(t.short,"")}</span>
+      ${badge}
+    </div>`;
+  }).join("");
+}
+
+drawWheel(0);
+renderTopics();
+
+function getAvailable() {
+  return topics.map((_,i) => i).filter(i => !recentDraw.includes(i));
+}
+
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  btn.disabled = true;
+  cooldownInfo.textContent = "";
+
+  const available = getAvailable();
+  const targetIdx = available[Math.floor(Math.random() * available.length)];
+  const fullRotations = (8 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+  const targetAngle = (-(targetIdx * slice + slice / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const finalAngle = Math.floor(currentAngle / (2 * Math.PI)) * 2 * Math.PI + fullRotations + targetAngle;
+  const duration = 6000 + Math.random() * 1500;
+  const startAngle = currentAngle;
+  const startTime = performance.now();
+
+  function ease(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function frame(now) {
+    const p = Math.min((now - startTime) / duration, 1);
+    currentAngle = startAngle + (finalAngle - startAngle) * ease(p);
+    drawWheel(currentAngle);
+    if (p < 1) { requestAnimationFrame(frame); return; }
+    currentAngle = finalAngle % (2 * Math.PI);
+    spinning = false;
+    btn.disabled = false;
+    onLanded(targetIdx);
+  }
+  requestAnimationFrame(frame);
+}
+
+function onLanded(idx) {
+  recentDraw.push(idx);
+  if (recentDraw.length > COOLDOWN) recentDraw.shift();
+  lastDrawn = idx;
+
+  const t = topics[idx];
+  resultNum.style.display = "block";
+  resultNum.textContent = `${t.num}.`;
+  resultText.textContent = t.full;
+  resultText.classList.remove("placeholder");
+
+  renderTopics();
+
+  const blocked = recentDraw.map(i => topics[i].num).join(", ");
+  cooldownInfo.textContent = `Okruh ${blocked} ${recentDraw.length > 1 ? "nebudou" : "nebude"} vylosován v dalších ${COOLDOWN} kolech.`;
+}
+
+btn.addEventListener('click', spin);
+</script>
+</body>
+</html>
