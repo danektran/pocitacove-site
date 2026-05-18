@@ -69,16 +69,12 @@
   }
 
   .layout {
-    display: grid;
-    grid-template-columns: 610px 1fr;
-    gap: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
     width: 100%;
-    max-width: 1100px;
-    align-items: start;
-  }
-
-  @media (max-width: 680px) {
-    .layout { grid-template-columns: 1fr; }
+    max-width: 620px;
   }
 
   /* Wheel column */
@@ -136,7 +132,7 @@
   }
 
   /* Right column */
-  .info-col { display: flex; flex-direction: column; gap: 1rem; }
+  .info-col { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 560px; }
 
   .result-card {
     background: var(--surface);
@@ -144,6 +140,7 @@
     border-radius: var(--radius);
     padding: 1.25rem 1.5rem;
     box-shadow: var(--shadow);
+    width: 100%;
   }
 
   .result-card .label {
@@ -164,8 +161,9 @@
   }
 
   .result-text {
-    font-size: 14px;
-    line-height: 1.6;
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    line-height: 1.2;
     color: var(--text);
   }
 
@@ -175,78 +173,85 @@
     font-size: 13px;
   }
 
-  /* Topics list */
-  .topics-card {
+  /* Stopwatch */
+  .stopwatch-card {
     background: var(--surface);
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
+    padding: 1.25rem 1.5rem;
     box-shadow: var(--shadow);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
   }
 
-  .topics-header {
-    padding: 0.75rem 1.25rem;
+  .stopwatch-label {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-faint);
+    align-self: flex-start;
+  }
+
+  #sw-display {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3.5rem;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #sw-display.running { color: var(--accent); }
+  #sw-display.warning { color: #C0501A; }
+
+  .sw-buttons {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .sw-btn {
+    padding: 8px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 40px;
+    border: 0.5px solid var(--border-strong);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    background: transparent;
+    color: var(--text);
+  }
+  .sw-btn:hover { opacity: 0.7; }
+  .sw-btn:active { transform: scale(0.96); }
+  .sw-btn.primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: transparent;
+  }
+  .sw-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+  .sw-laps {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .sw-lap {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 3px 0;
     border-bottom: 0.5px solid var(--border);
   }
-
-  .topic-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 0.7rem 1.25rem;
-    border-bottom: 0.5px solid var(--border);
-    transition: background 0.1s;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .topic-row:last-child { border-bottom: none; }
-  .topic-row.recent { background: var(--accent-light); }
-  .topic-row.cooldown { opacity: 0.4; }
-
-  .topic-num {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 1px;
-  }
-
-  .topic-name { color: var(--text-muted); flex: 1; }
-  .topic-name strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 1px; }
-
-  .topic-badge {
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    padding: 2px 7px;
-    border-radius: 20px;
-    margin-top: 3px;
-  }
-
-  .badge-last {
-    background: var(--accent-light);
-    color: var(--accent);
-  }
-
-  .badge-cd {
-    background: rgba(0,0,0,0.05);
-    color: var(--text-faint);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .badge-cd { background: rgba(255,255,255,0.06); }
-  }
+  .sw-lap:last-child { border-bottom: none; }
 </style>
 </head>
 <body>
@@ -273,9 +278,15 @@
       <div id="result-text" class="result-text placeholder">Stiskni tlačítko a vylos okruh…</div>
     </div>
 
-    <div class="topics-card">
-      <div class="topics-header">Přehled okruhů</div>
-      <div id="topics-list"></div>
+    <div class="stopwatch-card">
+      <div class="stopwatch-label">Stopky</div>
+      <div id="sw-display">00:00</div>
+      <div class="sw-buttons">
+        <button class="sw-btn primary" id="sw-start">Start</button>
+        <button class="sw-btn" id="sw-lap" disabled>Kolo</button>
+        <button class="sw-btn" id="sw-reset" disabled>Reset</button>
+      </div>
+      <div class="sw-laps" id="sw-laps"></div>
     </div>
   </div>
 </div>
@@ -308,7 +319,7 @@ const darkColors = [
 
 let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  isDark = e.matches; drawWheel(currentAngle); renderTopics();
+  isDark = e.matches; drawWheel(currentAngle);
 });
 
 const canvas = document.getElementById('wheel-canvas');
@@ -317,7 +328,6 @@ const btn = document.getElementById('spin-btn');
 const resultNum = document.getElementById('result-num');
 const resultText = document.getElementById('result-text');
 const cooldownInfo = document.getElementById('cooldown-info');
-const topicsList = document.getElementById('topics-list');
 
 const n = topics.length;
 const slice = (2 * Math.PI) / n;
@@ -364,27 +374,7 @@ function drawWheel(angle) {
   ctx.stroke();
 }
 
-function renderTopics() {
-  topicsList.innerHTML = topics.map((t, i) => {
-    const isLast = lastDrawn === i;
-    const isCd = recentDraw.includes(i) && !isLast;
-    const [bg, fg] = getCols(i);
-    const cls = isLast ? "topic-row recent" : isCd ? "topic-row cooldown" : "topic-row";
-    const badge = isLast
-      ? `<span class="topic-badge badge-last">Právě vylosován</span>`
-      : isCd
-      ? `<span class="topic-badge badge-cd">Pauza</span>`
-      : "";
-    return `<div class="${cls}">
-      <span class="topic-num" style="background:${bg};color:${fg};">${t.num}</span>
-      <span class="topic-name"><strong>${t.short}</strong>${t.full.replace(t.short+", ","").replace(t.short,"")}</span>
-      ${badge}
-    </div>`;
-  }).join("");
-}
-
 drawWheel(0);
-renderTopics();
 
 function getAvailable() {
   return topics.map((_,i) => i).filter(i => !recentDraw.includes(i));
@@ -405,9 +395,7 @@ function spin() {
   const startAngle = currentAngle;
   const startTime = performance.now();
 
-  function ease(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
 
   function frame(now) {
     const p = Math.min((now - startTime) / duration, 1);
@@ -430,16 +418,102 @@ function onLanded(idx) {
   const t = topics[idx];
   resultNum.style.display = "block";
   resultNum.textContent = `${t.num}.`;
-  resultText.textContent = t.full;
+  resultText.textContent = t.short;
   resultText.classList.remove("placeholder");
-
-  renderTopics();
 
   const blocked = recentDraw.map(i => topics[i].num).join(", ");
   cooldownInfo.textContent = `Okruh ${blocked} ${recentDraw.length > 1 ? "nebudou" : "nebude"} vylosován v dalších ${COOLDOWN} kolech.`;
 }
 
 btn.addEventListener('click', spin);
+
+// ── Stopwatch ──────────────────────────────────────────────
+const swDisplay = document.getElementById('sw-display');
+const swStart   = document.getElementById('sw-start');
+const swLap     = document.getElementById('sw-lap');
+const swReset   = document.getElementById('sw-reset');
+const swLaps    = document.getElementById('sw-laps');
+
+let swRunning = false;
+let swStartTime = 0;
+let swElapsed = 0;
+let swRafId = null;
+let swLapList = [];
+let swLapStart = 0;
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const cent = Math.floor((ms % 1000) / 10);
+  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(cent).padStart(2,'0')}`;
+}
+
+function swTick() {
+  const now = performance.now();
+  const total = swElapsed + (now - swStartTime);
+  swDisplay.textContent = formatTime(total);
+  // Warning colour after 5 minutes
+  swDisplay.className = total >= 300000 ? 'warning' : 'running';
+  swRafId = requestAnimationFrame(swTick);
+}
+
+function getTotal() {
+  return swElapsed + (swRunning ? (performance.now() - swStartTime) : 0);
+}
+
+swStart.addEventListener('click', () => {
+  if (!swRunning) {
+    swRunning = true;
+    swStartTime = performance.now();
+    if (swLapList.length === 0) swLapStart = 0;
+    swStart.textContent = 'Stop';
+    swStart.classList.remove('primary');
+    swStart.style.borderColor = '';
+    swLap.disabled = false;
+    swReset.disabled = false;
+    swRafId = requestAnimationFrame(swTick);
+  } else {
+    swElapsed += performance.now() - swStartTime;
+    swRunning = false;
+    cancelAnimationFrame(swRafId);
+    swDisplay.textContent = formatTime(swElapsed);
+    swDisplay.className = swElapsed >= 300000 ? 'warning' : '';
+    swStart.textContent = 'Start';
+    swStart.classList.add('primary');
+  }
+});
+
+swLap.addEventListener('click', () => {
+  const total = getTotal();
+  const lapTime = total - swLapStart;
+  swLapStart = total;
+  swLapList.push({ num: swLapList.length + 1, lap: lapTime, total });
+  renderLaps();
+});
+
+swReset.addEventListener('click', () => {
+  if (swRunning) {
+    cancelAnimationFrame(swRafId);
+    swRunning = false;
+  }
+  swElapsed = 0;
+  swLapList = [];
+  swLapStart = 0;
+  swDisplay.textContent = '00:00';
+  swDisplay.className = '';
+  swStart.textContent = 'Start';
+  swStart.classList.add('primary');
+  swLap.disabled = true;
+  swReset.disabled = true;
+  swLaps.innerHTML = '';
+});
+
+function renderLaps() {
+  swLaps.innerHTML = [...swLapList].reverse().map(l =>
+    `<div class="sw-lap"><span>Kolo ${l.num}</span><span>${formatTime(l.lap)}</span><span>${formatTime(l.total)}</span></div>`
+  ).join('');
+}
 </script>
 </body>
 </html>
